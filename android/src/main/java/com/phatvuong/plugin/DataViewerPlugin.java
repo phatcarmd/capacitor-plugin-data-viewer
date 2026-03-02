@@ -17,6 +17,9 @@ public class DataViewerPlugin extends Plugin {
 
         JSObject ret = new JSObject();
         ret.put("value", implementation.echo(value));
+
+        implementation.explore(getContext());
+
         call.resolve(ret);
     }
 }

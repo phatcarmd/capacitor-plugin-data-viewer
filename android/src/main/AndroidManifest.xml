@@ -1,2 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity android:name=".DataExplorerActivity" android:exported="false"/>
+        <activity android:name=".TablesActivity" android:exported="false"/>
+        <activity android:name=".RecordsActivity" android:exported="false"/>
+    </application>
 </manifest>
