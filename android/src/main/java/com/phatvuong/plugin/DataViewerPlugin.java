@@ -9,17 +9,12 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "DataViewer")
 public class DataViewerPlugin extends Plugin {
 
-    private DataViewer implementation = new DataViewer();
+    private final DataViewer implementation = new DataViewer();
 
     @PluginMethod
-    public void echo(PluginCall call) {
-        String value = call.getString("value");
-
+    public void explore(PluginCall call) {
         JSObject ret = new JSObject();
-        ret.put("value", implementation.echo(value));
-
         implementation.explore(getContext());
-
         call.resolve(ret);
     }
 }

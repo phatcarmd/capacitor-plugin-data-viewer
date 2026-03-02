@@ -7,4 +7,8 @@ export class DataViewerWeb extends WebPlugin implements DataViewerPlugin {
     console.log('ECHO', options);
     return options;
   }
+
+  async explore(): Promise<void> {
+    
+  }
 }

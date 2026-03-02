@@ -10,6 +10,8 @@ var capacitorDataViewer = (function (exports, core) {
             console.log('ECHO', options);
             return options;
         }
+        async explore() {
+        }
     }
 
     var web = /*#__PURE__*/Object.freeze({

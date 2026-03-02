@@ -1,6 +1,10 @@
 # capacitor-plugin-data-viewer
 
-Explore local Sqlites, share references
+A powerful local SQLite database explorer for Capacitor apps. This plugin allows developers and testers to inspect, browse, and verify local database records directly within the app using a modern, performant UI.
+
+## Author
+
+Phat Vuong (phat.vuong@sw.innova.com)
 
 ## Install
 
@@ -13,24 +17,18 @@ npx cap sync
 
 <docgen-index>
 
-* [`echo(...)`](#echo)
+* [`explore()`](#explore)
 
 </docgen-index>
 
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
 
-### echo(...)
+### explore()
 
 ```typescript
-echo(options: { value: string; }) => Promise<{ value: string; }>
+explore() => Promise<void>
 ```
-
-| Param         | Type                            |
-| ------------- | ------------------------------- |
-| **`options`** | <code>{ value: string; }</code> |
-
-**Returns:** <code>Promise&lt;{ value: string; }&gt;</code>
 
 --------------------
 

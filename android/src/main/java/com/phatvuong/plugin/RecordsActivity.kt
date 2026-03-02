@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,7 +31,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
@@ -42,7 +47,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,6 +77,9 @@ fun DataGridScreen(dbName: String, tableName: String) {
     var canLoadMore by remember { mutableStateOf(true) }
     var isLoading by remember { mutableStateOf(false) }
 
+    var selectedCellData by remember { mutableStateOf<String?>(null) }
+    var showCellInfoDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         isLoading = true
         val (cols, rows) = repository.getTableData(context, dbName, tableName, 0, 100)
@@ -79,6 +89,13 @@ fun DataGridScreen(dbName: String, tableName: String) {
     }
 
     val horizontalScrollState = rememberScrollState()
+
+    if (showCellInfoDialog && selectedCellData != null) {
+        CellDetailDialog(
+            data = selectedCellData!!,
+            onDismiss = { showCellInfoDialog = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -104,9 +121,12 @@ fun DataGridScreen(dbName: String, tableName: String) {
             Box(modifier = Modifier.horizontalScroll(horizontalScrollState)) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
 
-                    item {
+                    stickyHeader {
                         if (columns.isNotEmpty()) {
-                            TableRow(columns, isHeader = true)
+                            // Thêm Surface hoặc Background để header không bị trong suốt khi chồng lên row
+                            Surface(shadowElevation = 2.dp) {
+                                TableRow(columns, isHeader = true)
+                            }
                         }
                     }
 
@@ -125,7 +145,10 @@ fun DataGridScreen(dbName: String, tableName: String) {
                             }
                         }
 
-                        TableRow(row, isHeader = false)
+                        TableRow(row, isHeader = false, onCellClick = { cellText ->
+                            selectedCellData = cellText
+                            showCellInfoDialog = true
+                        })
                     }
 
                     // Hiển thị loading ở cuối danh sách nếu đang tải thêm
@@ -141,7 +164,7 @@ fun DataGridScreen(dbName: String, tableName: String) {
 }
 
 @Composable
-fun TableRow(row: List<String>, isHeader: Boolean = false) {
+fun TableRow(row: List<String>, isHeader: Boolean = false, onCellClick: ((String) -> Unit)? = null) {
     val bgColor = if (isHeader) MaterialTheme.colorScheme.secondaryContainer
     else MaterialTheme.colorScheme.surface
     val fontWeight = if (isHeader) FontWeight.Bold else FontWeight.Normal
@@ -159,6 +182,9 @@ fun TableRow(row: List<String>, isHeader: Boolean = false) {
                     text = cell,
                     modifier = Modifier
                         .width(150.dp)
+                        .clickable(enabled = !isHeader) {
+                            onCellClick?.invoke(cell)
+                        }
                         .padding(12.dp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -177,4 +203,33 @@ fun TableRow(row: List<String>, isHeader: Boolean = false) {
         }
         HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
     }
+}
+
+@Composable
+fun CellDetailDialog(data: String, onDismiss: () -> Unit) {
+    val clipboardManager = LocalClipboardManager.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Cell Detail") },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(text = data, style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                clipboardManager.setText(AnnotatedString(data))
+                // Có thể thêm Toast thông báo "Copied" tại đây
+                onDismiss()
+            }) {
+                Text("Copy")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
 }

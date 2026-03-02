@@ -6,4 +6,5 @@ export declare class DataViewerWeb extends WebPlugin implements DataViewerPlugin
     }): Promise<{
         value: string;
     }>;
+    explore(): Promise<void>;
 }

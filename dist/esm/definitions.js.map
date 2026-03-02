@@ -1,1 +1,1 @@
-{"version":3,"file":"definitions.js","sourceRoot":"","sources":["../../src/definitions.ts"],"names":[],"mappings":"","sourcesContent":["export interface DataViewerPlugin {\n  echo(options: { value: string }): Promise<{ value: string }>;\n}\n"]}
+{"version":3,"file":"definitions.js","sourceRoot":"","sources":["../../src/definitions.ts"],"names":[],"mappings":"","sourcesContent":["export interface DataViewerPlugin {\n  explore(): Promise<void>;\n}\n"]}
