@@ -24,10 +24,10 @@ apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
     namespace = "com.phatvuong.plugin"
-    compileSdk = project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36
+    compileSdk = project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 35
     defaultConfig {
         minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 24
-        targetSdkVersion project.hasProperty('targetSdkVersion') ? rootProject.ext.targetSdkVersion : 36
+        targetSdkVersion project.hasProperty('targetSdkVersion') ? rootProject.ext.targetSdkVersion : 35
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -65,15 +65,15 @@ repositories {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':capacitor-android')
-    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
-    implementation 'androidx.core:core-ktx:1.17.0'
-    implementation 'androidx.compose.runtime:runtime:1.10.3'
-    implementation 'androidx.compose.foundation:foundation-layout:1.10.3'
+    implementation "androidx.appcompat:appcompat:1.7.0"
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.compose.runtime:runtime:1.7.5'
+    implementation 'androidx.compose.foundation:foundation-layout:1.7.5'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
 
-    def composeBom = platform('androidx.compose:compose-bom:2026.02.01')
+    def composeBom = platform('androidx.compose:compose-bom:2024.10.00')
     implementation composeBom
     androidTestImplementation composeBom
     implementation 'androidx.compose.material3:material3'
@@ -82,9 +82,9 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-tooling'
     implementation 'androidx.compose.material3.adaptive:adaptive'
     // Optional - Integration with activities
-    implementation 'androidx.activity:activity-compose:1.12.4'
+    implementation 'androidx.activity:activity-compose:1.9.3'
     // Optional - Integration with ViewModels
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7'
     // Optional - Integration with LiveData
     implementation 'androidx.compose.runtime:runtime-livedata'
     // Optional - Integration with RxJava

@@ -1,9 +1,9 @@
 package com.phatvuong.plugin
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
@@ -23,6 +23,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 class DataExplorerActivity : ComponentActivity() {
@@ -38,7 +39,7 @@ class DataExplorerActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatabasesListScreen(fileNames: List<String>) {
-    val context = LocalActivity.current
+    val context = LocalContext.current as? Activity
 
     Scaffold(
         topBar = {
