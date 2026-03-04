@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
@@ -41,7 +42,7 @@ class TablesActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListScreen(dbName: String, tables: List<String>) {
-    val context = LocalContext.current as? Activity
+    val context = LocalActivity.current
 
     Scaffold(
         topBar = {

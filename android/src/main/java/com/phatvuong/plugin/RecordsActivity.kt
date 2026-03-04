@@ -3,6 +3,7 @@ package com.phatvuong.plugin
 import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -70,7 +71,7 @@ class RecordsActivity : ComponentActivity() {
 @Composable
 fun DataGridScreen(dbName: String, tableName: String) {
     val context = LocalContext.current
-    val act = context as? Activity
+    val act = LocalActivity.current
     val repository = DatabaseRepository.getInstance()
     var columns by remember { mutableStateOf(emptyList<String>()) }
     val rowData = remember { mutableStateListOf<List<String>>() }
