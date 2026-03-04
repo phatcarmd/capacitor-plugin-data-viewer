@@ -1,6 +1,7 @@
 package com.phatvuong.plugin
 
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 
 class DatabaseRepository private constructor() {
@@ -68,7 +69,19 @@ class DatabaseRepository private constructor() {
                 while (cursor.moveToNext()) {
                     val row = mutableListOf<String>()
                     for (i in 0 until cursor.columnCount) {
-                        row.add(cursor.getString(i) ?: "NULL")
+                        val type = cursor.getType(i)
+                        val value = when (type) {
+                            Cursor.FIELD_TYPE_STRING -> cursor.getString(i)
+                            Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i).toString()
+                            Cursor.FIELD_TYPE_FLOAT -> cursor.getDouble(i).toString()
+                            Cursor.FIELD_TYPE_BLOB -> {
+                                val bytes = cursor.getBlob(i)
+                                "[BLOB: ${bytes?.size ?: 0} bytes]" // Hiển thị thông tin thay vì nội dung
+                            }
+                            Cursor.FIELD_TYPE_NULL -> "NULL"
+                            else -> "UNKNOWN"
+                        }
+                        row.add(value ?: "NULL")
                     }
                     rows.add(row)
                 }
