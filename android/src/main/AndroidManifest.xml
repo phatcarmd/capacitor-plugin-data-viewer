@@ -3,5 +3,6 @@
         <activity android:name=".DataExplorerActivity" android:exported="false"/>
         <activity android:name=".TablesActivity" android:exported="false"/>
         <activity android:name=".RecordsActivity" android:exported="false"/>
+        <activity android:name=".SharedPreferencesActivity" android:exported="false"/>
     </application>
 </manifest>

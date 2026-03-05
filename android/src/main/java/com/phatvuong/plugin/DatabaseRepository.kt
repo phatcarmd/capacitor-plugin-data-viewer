@@ -3,6 +3,7 @@ package com.phatvuong.plugin
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import java.io.File
 
 class DatabaseRepository private constructor() {
     companion object {
@@ -11,6 +12,16 @@ class DatabaseRepository private constructor() {
 
         fun getInstance() = instance ?: synchronized(this) {
             instance ?: DatabaseRepository().also { instance = it }
+        }
+    }
+
+    fun getSharedPreferencesFiles(context: Context): List<String> {
+        val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
+        return if (prefsDir.exists() && prefsDir.isDirectory) {
+            prefsDir.listFiles { _, name -> name.endsWith(".xml") }
+                ?.map { it.name.removeSuffix(".xml") } ?: emptyList()
+        } else {
+            emptyList()
         }
     }
 
@@ -88,5 +99,16 @@ class DatabaseRepository private constructor() {
             }
         }
         return Pair(columns, rows)
+    }
+
+    fun getSharedPrefsData(context: Context, fileName: String): List<Pair<String, String>> {
+        val prefs = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
+        return prefs.all.map { entry ->
+            val value = when (val v = entry.value) {
+                is Set<*> -> v.joinToString(", ")
+                else -> v.toString()
+            }
+            entry.key to value
+        }.sortedBy { it.first }
     }
 }
