@@ -7,9 +7,18 @@ This plugin provides excellent support for performing mobile app automation test
 <img src="screenshots/tables.png" alt="All Tables of Selected Database" width="300">
 <img src="screenshots/records.png" alt="All Records of Selected Table" width="300">
 
-## Author
+## Prerequisites
 
-Phat Vuong (phat.vuong@sw.innova.com)
+To use this plugin, your environment and projects must meet the following minimum requirements:
+
+- **Android**
+  - Minimum SDK: 23 (Android 6.0 Marshmallow) or higher.
+  - Android Gradle Plugin (AGP): 8.7.2
+  - Gradle Wrapper: 8.9 or 8.10.2 (Recommended for AGP 8.7.x compatibility).
+  - Java Version: JDK 21
+- **iOS**
+  - Deployment Target: iOS 12.0 or higher.
+  - Xcode: 15.0 or newer (to support modern Swift and Capacitor features).
 
 ## Install
 
@@ -22,7 +31,7 @@ npx cap sync
 
 <docgen-index>
 
-* [`explore()`](#explore)
+- [`explore()`](#explore)
 
 </docgen-index>
 
@@ -35,13 +44,18 @@ npx cap sync
 explore() => Promise<void>
 ```
 
---------------------
+---
 
 </docgen-api>
 
 ## Usage
+
 ```bash
 import { DataViewer }  from 'capacitor-plugin-data-viewer'
 ...
 DataViewer.explore();
 ```
+
+## Author
+
+Phat Vuong (phatvuong.sm@gmail.com)
