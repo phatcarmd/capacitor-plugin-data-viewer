@@ -192,7 +192,7 @@ fun DataGridScreen(dbName: String, tableName: String) {
                     stickyHeader {
                         if (visibleColumns.isNotEmpty()) {
                             Surface(shadowElevation = 2.dp) {
-                                TableRow(allColumns.filter { it in visibleColumns }, isHeader = true)
+                                TableRow(allColumns.filter { it in visibleColumns }, index = 0, isHeader = true)
                             }
                         }
                     }
@@ -214,7 +214,7 @@ fun DataGridScreen(dbName: String, tableName: String) {
 
                         val filteredRow = visibleIndices.map { row.getOrNull(it) ?: "" }
 
-                        TableRow(filteredRow, isHeader = false, onCellClick = { cellText ->
+                        TableRow(filteredRow, index = index, isHeader = false, onCellClick = { cellText ->
                             selectedCellData = cellText
                             showCellInfoDialog = true
                         })
@@ -232,9 +232,12 @@ fun DataGridScreen(dbName: String, tableName: String) {
 }
 
 @Composable
-fun TableRow(row: List<String>, isHeader: Boolean = false, onCellClick: ((String) -> Unit)? = null) {
-    val bgColor = if (isHeader) MaterialTheme.colorScheme.secondaryContainer
-    else MaterialTheme.colorScheme.surface
+fun TableRow(row: List<String>, isHeader: Boolean = false, index: Int, onCellClick: ((String) -> Unit)? = null) {
+    val bgColor = when {
+        isHeader -> MaterialTheme.colorScheme.secondaryContainer
+        index % 2 != 0 -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+        else -> MaterialTheme.colorScheme.surface
+    }
     val fontWeight = if (isHeader) FontWeight.Bold else FontWeight.Normal
 
     Column {
@@ -249,12 +252,12 @@ fun TableRow(row: List<String>, isHeader: Boolean = false, onCellClick: ((String
                 Text(
                     text = cell,
                     modifier = Modifier
-                        .width(150.dp)
+                        .width(250.dp)
                         .clickable(enabled = !isHeader) {
                             onCellClick?.invoke(cell)
                         }
                         .padding(12.dp),
-                    maxLines = 1,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = fontWeight,
                     style = MaterialTheme.typography.bodyMedium
