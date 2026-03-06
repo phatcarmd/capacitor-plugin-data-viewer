@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,7 +31,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,7 +46,7 @@ class SharedPreferencesActivity : ComponentActivity() {
         val data = DatabaseRepository.getInstance().getSharedPrefsData(this, fileName)
 
         setContent {
-            SharedPreferencesScreen(fileName, data) { }
+            SharedPreferencesScreen(fileName, data)
         }
     }
 }
@@ -54,10 +56,20 @@ class SharedPreferencesActivity : ComponentActivity() {
 fun SharedPreferencesScreen(
     fileName: String,
     data: List<Pair<String, String>>,
-    onCellClick: (String) -> Unit
 ) {
     val act = LocalActivity.current
     val dividerColor = MaterialTheme.colorScheme.outlineVariant
+
+    var selectedCellData by remember { mutableStateOf<String?>(null) }
+    var showCellInfoDialog by remember { mutableStateOf(false) }
+
+    if (showCellInfoDialog && selectedCellData != null) {
+        CellDetailDialog(
+            data = selectedCellData!!,
+            onDismiss = { showCellInfoDialog = false }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -120,11 +132,16 @@ fun SharedPreferencesScreen(
                                 if (index % 2 == 0) MaterialTheme.colorScheme.surface
                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
                             )
-                            .clickable { onCellClick(item.second) },
                     ) {
                         Text(
                             text = item.first,
-                            modifier = Modifier.weight(0.4f).padding(12.dp),
+                            modifier = Modifier
+                                .clickable {
+                                    selectedCellData = item.first
+                                    showCellInfoDialog = true
+                                }
+                                .weight(0.4f)
+                                .padding(12.dp),
                         )
 
                         Box(
@@ -136,7 +153,13 @@ fun SharedPreferencesScreen(
 
                         Text(
                             text = item.second,
-                            modifier = Modifier.weight(0.6f).padding(12.dp),
+                            modifier = Modifier
+                                .clickable {
+                                    selectedCellData = item.second
+                                    showCellInfoDialog = true
+                                }
+                                .weight(0.6f)
+                                .padding(12.dp),
                         )
                     }
                     HorizontalDivider(thickness = 0.5.dp, color = dividerColor)
