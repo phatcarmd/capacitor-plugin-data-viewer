@@ -63,7 +63,7 @@ class DatabaseRepository private constructor() {
         return tableList
     }
 
-    fun getTableData(context: Context, dbName: String, tableName: String, page: Int, pageSize: Int) : Pair<List<String>, List<List<String>>> {
+    fun getTableData(context: Context, dbName: String, tableName: String, page: Int, pageSize: Int, filters: List<FilterCondition>) : Pair<List<String>, List<List<String>>> {
         val columns = mutableListOf<String>()
         val rows = mutableListOf<List<String>>()
         val dbFile = context.getDatabasePath(dbName)
@@ -75,8 +75,10 @@ class DatabaseRepository private constructor() {
                 }
             }
 
+            val whereClause = buildWhereClause(filters)
             val offset = page * pageSize
-            db.rawQuery("SELECT * FROM $tableName LIMIT $pageSize OFFSET $offset", null).use { cursor ->
+            val query = "SELECT * FROM $tableName $whereClause LIMIT $pageSize OFFSET $offset"
+            db.rawQuery(query, null).use { cursor ->
                 while (cursor.moveToNext()) {
                     val row = mutableListOf<String>()
                     for (i in 0 until cursor.columnCount) {
@@ -110,5 +112,37 @@ class DatabaseRepository private constructor() {
             }
             entry.key to value
         }.sortedBy { it.first }
+    }
+
+    fun buildWhereClause(filters: List<FilterCondition>): String {
+        if (filters.isEmpty()) return ""
+
+        val conditions = filters.filter { it.column.isNotEmpty() && it.value.isNotEmpty() }
+            .map { filter ->
+                val escapedValue = filter.value.replace("'", "''")
+
+                when (filter.operator.uppercase()) {
+                    "LIKE" -> "${filter.column} LIKE '%$escapedValue%'"
+                    "IN" -> {
+                        val formattedValues = escapedValue.split(",")
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() }
+                            .joinToString(", ") { "'$it'" }
+
+                        if (formattedValues.isNotEmpty()) {
+                            "${filter.column} IN ($formattedValues)"
+                        } else {
+                            "1=1"
+                        }
+                    }
+                    else -> "${filter.column} ${filter.operator} '$escapedValue'"
+                }
+            }
+
+        return if (conditions.isNotEmpty()) {
+            " WHERE " + conditions.joinToString(" AND ")
+        } else {
+            ""
+        }
     }
 }
