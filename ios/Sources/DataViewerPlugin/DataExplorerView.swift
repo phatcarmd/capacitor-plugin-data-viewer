@@ -8,36 +8,82 @@
 import Foundation
 import SwiftUI
 
-struct DataExplorerView : View {
-    @State private var files: [URL] = []
+struct DataExplorerView: View {
+    @State private var dbFiles: [URL] = []
+    @State private var prefFiles: [URL] = []
+    
     let repository = DatabaseRepository.shared
     let onDismiss: () -> Void
 
+    init(onDismiss: @escaping () -> Void) {
+        self.onDismiss = onDismiss
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor.systemPurple
+        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().tintColor = .white
+    }
+
     var body: some View {
         NavigationView {
-            List(files, id: \.self) { file in
-                NavigationLink(destination: TableListView(dbUrl: file)) {
-                    HStack {
-                        Image(systemName: "database.fill")
-                            .foregroundColor(.blue)
-                        VStack(alignment: .leading) {
-                            Text(file.lastPathComponent)
-                                .font(.headline)
-                            Text(file.lastPathComponent) // Hoặc size/path ngắn gọn
-                                .font(.caption2)
-                                .foregroundColor(.gray)
+            List {
+                // --- DATABASES ---
+                Section(header: Label("Databases", systemImage: "list.bullet")) {
+                    ForEach(dbFiles, id: \.self) { file in
+                        NavigationLink(destination: TableListView(dbUrl: file)) {
+                            FileRowView(fileName: file.lastPathComponent, icon: "tablecells.fill", iconColor: .blue)
+                        }
+                    }
+                }
+                
+                // --- SHARED PREFERENCES ---
+                Section(header: Label("Shared Preferences", systemImage: "gearshape.fill")) {
+                    ForEach(prefFiles, id: \.self) { file in
+                        NavigationLink(destination: PreferenceDetailScreen(fileUrl: file)) {
+                            FileRowView(fileName: file.lastPathComponent, icon: "doc.text.fill", iconColor: .orange)
                         }
                     }
                 }
             }
+            .listStyle(InsetGroupedListStyle())
             .navigationTitle("Data Explorer")
-            .navigationBarItems(trailing: Button("Done") {
-                onDismiss()
-            })
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        onDismiss()
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                files = repository.getDatabaseFiles()
+                dbFiles = repository.getDatabaseFiles()
+                prefFiles = repository.getSharedPreferencesFiles()
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+        .accentColor(.white)
+    }
+}
+
+struct FileRowView: View {
+    let fileName: String
+    let icon: String
+    let iconColor: Color
+    
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(iconColor)
+            Text(fileName)
+                .font(.body)
+                .lineLimit(2)
+                .truncationMode(.middle)
+        }
+        .padding(.vertical, 4)
     }
 }

@@ -1,10 +1,3 @@
-//
-//  DataGridScreen.swift
-//  CapacitorPluginDataViewer
-//
-//  Created by cmd on 3/3/26.
-//
-
 import Foundation
 import SwiftUI
 
@@ -12,32 +5,35 @@ struct DataGridScreen: View {
     let dbUrl: URL
     let tableName: String
     
-    @State private var columns: [String] = []
     @State private var rows: [[String]] = []
     @State private var offset: Int = 0
     @State private var isLoading = false
     @State private var canLoadMore = true
+  
+    @State private var allColumns: [String] = []
+    @State private var visibleColumns = Set<String>()
+    @State private var filters: [FilterCondition] = []
+    @State private var showSettings = false
     
     @State private var showActionSheet = false
     @State private var selectedCellText = ""
     
     private let pageSize = 50
     private let repository = DatabaseRepository.shared
-    private let columnWidth: CGFloat = 120
+    private let columnWidth: CGFloat = 150
 
     var body: some View {
         VStack(spacing: 0) {
-            if columns.isEmpty && isLoading {
+            if allColumns.isEmpty && isLoading {
                 ProgressView("Loading...")
             } else {
                 ScrollView(.horizontal) {
                     ScrollView(.vertical) {
                         LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                            Section(header: headerView) {
-                                ForEach(0..<rows.count, id: \.self) { index in
-                                    rowView(rows[index], index: index)
+                            Section(header: makeHeaderView()) { // Gọi hàm tạo Header
+                                ForEach(rows.indices, id: \.self) { index in
+                                    makeRowView(rows[index], index: index)
                                         .onAppear {
-                                            // Nếu cuộn đến hàng cuối cùng, tự động load trang tiếp theo
                                             if index == rows.count - 1 && canLoadMore {
                                                 loadMoreData()
                                             }
@@ -52,11 +48,21 @@ struct DataGridScreen: View {
                             }
                         }
                     }
-                    .frame(width: CGFloat(columns.count) * columnWidth)
+                    // Tính độ rộng dựa trên số cột đang hiển thị
+                    .frame(width: CGFloat(visibleColumns.isEmpty ? allColumns.count : visibleColumns.count) * columnWidth)
                 }
             }
         }
         .navigationTitle(tableName)
+        .navigationBarItems(trailing: Button(action: { showSettings = true }) {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+        })
+        .sheet(isPresented: $showSettings, onDismiss: {
+            refreshData()
+        }) {
+            // Đảm bảo bạn đã định nghĩa TableSettingsView hỗ trợ iOS 12 như mình đã hướng dẫn
+            TableSettingsView(allColumns: allColumns, visibleColumns: $visibleColumns, filters: $filters)
+        }
         .actionSheet(isPresented: $showActionSheet) {
             ActionSheet(
                 title: Text("Cell Options"),
@@ -74,22 +80,63 @@ struct DataGridScreen: View {
         }
     }
 
+    // Chuyển thành hàm để build dễ hơn
+    private func makeHeaderView() -> some View {
+        HStack(spacing: 0) {
+            let displayCols = allColumns.filter { visibleColumns.contains($0) }
+            ForEach(displayCols, id: \.self) { col in
+                Text(col)
+                    .font(.caption.bold())
+                    .frame(width: columnWidth, height: 40, alignment: .leading)
+                    .padding(.horizontal, 8)
+                    .background(Color(.systemGray6))
+                    .border(Color(.systemGray4), width: 0.5)
+            }
+        }
+    }
+
+    private func makeRowView(_ row: [String], index: Int) -> some View {
+        // Lấy danh sách index của những cột được chọn
+        let visibleIndices = allColumns.enumerated()
+            .filter { visibleColumns.contains($1) }
+            .map { $0.offset }
+      
+        return HStack(spacing: 0) {
+            ForEach(visibleIndices, id: \.self) { colIndex in
+                // Kiểm tra index an toàn tránh crash
+                Text(row.indices.contains(colIndex) ? row[colIndex] : "")
+                    .font(.system(size: 12))
+                    .frame(width: columnWidth, height: 35, alignment: .leading)
+                    .padding(.horizontal, 8)
+                    .lineLimit(1)
+                    .background(index % 2 == 0 ? Color(.systemBackground) : Color(.secondarySystemBackground))
+                    .onTapGesture {
+                        if row.indices.contains(colIndex) {
+                            self.selectedCellText = row[colIndex]
+                            self.showActionSheet = true
+                        }
+                    }
+            }
+        }
+    }
+
     private func loadMoreData() {
         guard !isLoading else { return }
         isLoading = true
         
-        // Chạy trong background để không lag UI
         DispatchQueue.global(qos: .userInitiated).async {
             let newData = repository.getTableData(
                 from: dbUrl,
                 tableName: tableName,
                 limit: pageSize,
-                offset: offset
+                offset: offset,
+                filters: filters
             )
             
             DispatchQueue.main.async {
-                if self.columns.isEmpty {
-                    self.columns = newData.columns
+                if self.allColumns.isEmpty {
+                    self.allColumns = newData.columns
+                    self.visibleColumns = Set(newData.columns)
                 }
                 
                 if newData.rows.isEmpty {
@@ -102,35 +149,11 @@ struct DataGridScreen: View {
             }
         }
     }
-
-    // Header và Row View giữ nguyên như phần trước...
-    var headerView: some View {
-        HStack(spacing: 0) {
-            ForEach(columns, id: \.self) { col in
-                Text(col)
-                    .font(.caption.bold())
-                    .frame(width: columnWidth, height: 40, alignment: .leading)
-                    .padding(.horizontal, 8)
-                    .background(Color(.systemGray6))
-                    .border(Color(.systemGray4), width: 0.5)
-            }
-        }
-    }
-
-    func rowView(_ row: [String], index: Int) -> some View {
-        HStack(spacing: 0) {
-            ForEach(0..<row.count, id: \.self) { colIndex in
-                Text(row[colIndex])
-                    .font(.system(size: 12))
-                    .frame(width: columnWidth, height: 35, alignment: .leading)
-                    .padding(.horizontal, 8)
-                    .lineLimit(1)
-                    .background(index % 2 == 0 ? Color(.systemBackground) : Color(.secondarySystemBackground))
-                    .onTapGesture {
-                        self.selectedCellText = row[colIndex]
-                        self.showActionSheet = true
-                    }
-            }
-        }
+  
+    private func refreshData() {
+        self.offset = 0
+        self.rows = []
+        self.canLoadMore = true
+        loadMoreData()
     }
 }

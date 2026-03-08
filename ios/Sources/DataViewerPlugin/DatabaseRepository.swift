@@ -49,6 +49,18 @@ class DatabaseRepository {
         }
         return dbFiles
     }
+  
+    func getSharedPreferencesFiles() -> [URL] {
+        let libraryPath = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
+        let prefsPath = libraryPath.appendingPathComponent("Preferences")
+        
+        do {
+            let files = try FileManager.default.contentsOfDirectory(at: prefsPath, includingPropertiesForKeys: nil)
+            return files.filter { $0.pathExtension == "plist" }
+        } catch {
+            return []
+        }
+    }
     
     func getTables(from dbUrl: URL) -> [String] {
         var db: OpaquePointer?
@@ -74,15 +86,27 @@ class DatabaseRepository {
         return tables.sorted()
     }
     
-    func getTableData(from dbUrl: URL, tableName: String, limit: Int, offset: Int) -> (columns: [String], rows: [[String]]) {
+    func getTableData(from dbUrl: URL, tableName: String, limit: Int, offset: Int, filters: [FilterCondition]) -> (columns: [String], rows: [[String]]) {
         var db: OpaquePointer?
         var columns: [String] = []
         var rows: [[String]] = []
         
         if sqlite3_open_v2(dbUrl.path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK {
             // Sử dụng LIMIT và OFFSET để phân trang
-            let query = "SELECT * FROM \(tableName) LIMIT \(limit) OFFSET \(offset);"
             var statement: OpaquePointer?
+          
+            var whereClause = ""
+            if !filters.isEmpty {
+                let conditions = filters.compactMap { filter -> String? in
+                    if filter.value.isEmpty { return nil }
+                    return "\(filter.column) \(filter.op) '\(filter.value)'"
+                }
+                if !conditions.isEmpty {
+                    whereClause = "WHERE " + conditions.joined(separator: " AND ")
+                }
+            }
+          
+            let query = "SELECT * FROM \(tableName) \(whereClause) LIMIT \(limit) OFFSET \(offset)"
             
             if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
                 let columnCount = sqlite3_column_count(statement)
@@ -107,6 +131,24 @@ class DatabaseRepository {
             sqlite3_finalize(statement)
         }
         sqlite3_close(db)
+        return (columns, rows)
+    }
+  
+    func getPreferencesData(from url: URL) -> (columns: [String], rows: [[String]]) {
+        let columns = ["Key", "Value", "Type"]
+        var rows: [[String]] = []
+        
+        if let dict = NSDictionary(contentsOf: url) as? [String: Any] {
+            let sortedKeys = dict.keys.sorted()
+            
+            for key in sortedKeys {
+                let value = dict[key] ?? "nil"
+                let type = String(describing: type(of: value))
+                
+                rows.append([key, "\(value)", type])
+            }
+        }
+        
         return (columns, rows)
     }
 }
