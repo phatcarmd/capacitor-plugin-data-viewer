@@ -4,9 +4,9 @@
 [![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20iOS-3DDC84)](#compatibility)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A native Capacitor plugin to inspect local SQLite data directly inside your app.
+A native Capacitor plugin to inspect local SQLite data and reference files directly inside your app.
 
-`capacitor-plugin-data-viewer` helps developers and QA teams validate app data quickly without building custom debug screens. It is especially useful for automation and manual verification workflows where checking local records is required.
+`capacitor-plugin-data-viewer` helps developers and QA/QC teams validate app data quickly without building custom debug screens. It supports both SQL records and app reference files (for example Shared Preferences on Android and plist preferences on iOS), making automation and manual verification workflows much easier.
 
 ## Highlights
 
