@@ -13,7 +13,40 @@ A native Capacitor plugin to inspect local SQLite data directly inside your app.
 - Browse local databases and tables from a native UI.
 - Inspect records with a responsive, mobile-friendly data grid.
 - Configure visible columns and table filters for focused debugging.
+- Copy any cell value from both SQLite and Shared Preferences views.
+- Inspect Shared Preferences with key/value/type visualization.
+- Add, edit, and delete Shared Preferences entries directly in-app.
+- Validate typed input before saving (`String`, `Int`, `Double/Float`, `Bool`, `Data`, `Dictionary`, `Array`, platform-dependent numeric variants).
 - Use in internal QA builds to speed up data-level troubleshooting.
+
+## Feature Overview
+
+### SQLite Explorer
+
+- List local database files and browse tables.
+- Paginated record viewer optimized for large tables.
+- Horizontal/vertical scroll data grid for wide datasets.
+- Per-table settings:
+  - Show/hide columns.
+  - Add filter conditions (`=`, `LIKE`, `IN`, `>`, `<`, `!=`, etc. depending on platform implementation).
+- Tap cell to open quick actions (copy value).
+
+### Shared Preferences / Plist Explorer
+
+- List preference entries with explicit `Key`, `Value`, and `Type` columns.
+- Open cell actions dialog to copy values quickly.
+- CRUD support for preference entries:
+  - `Add Entry`
+  - `Edit Entry`
+  - `Delete Entry`
+- Type-aware input validation before save:
+  - `String`
+  - Numeric types (`Int`, `Long`, `Float`, `Double` where applicable)
+  - `Bool` (`true/false/1/0`)
+  - `Data` (Base64)
+  - `Dictionary` (JSON object)
+  - `Array` (JSON array)
+- Save action is only available when all required fields are valid.
 
 ## Screenshots
 

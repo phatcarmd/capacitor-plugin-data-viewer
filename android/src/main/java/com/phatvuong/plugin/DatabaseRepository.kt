@@ -3,6 +3,8 @@ package com.phatvuong.plugin
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 
 class DatabaseRepository private constructor() {
@@ -114,6 +116,94 @@ class DatabaseRepository private constructor() {
         }.sortedBy { it.first }
     }
 
+    fun getSharedPrefsEntries(context: Context, fileName: String): List<SharedPrefEntry> {
+        val prefs = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
+        val typeMeta = getTypeMetaPrefs(context, fileName)
+
+        return prefs.all.map { entry ->
+            val key = entry.key
+            val value = entry.value
+            val runtimeType = runtimeTypeName(value)
+            val metaType = typeMeta.getString(key, null)
+            val displayType = when {
+                runtimeType != "String" -> runtimeType
+                !metaType.isNullOrBlank() -> metaType
+                value is String -> inferStringValueType(value)
+                else -> runtimeType
+            }
+
+            SharedPrefEntry(
+                key = key,
+                value = valueToDisplay(value),
+                type = displayType
+            )
+        }.sortedBy { it.key }
+    }
+
+    fun upsertSharedPrefEntry(
+        context: Context,
+        fileName: String,
+        key: String,
+        type: String,
+        rawInput: String,
+        oldKey: String? = null
+    ): String? {
+        val trimmedKey = key.trim()
+        if (trimmedKey.isEmpty()) return "Key is required."
+
+        val prefs = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
+        val meta = getTypeMetaPrefs(context, fileName)
+
+        if (!oldKey.isNullOrEmpty() && oldKey != trimmedKey && prefs.contains(trimmedKey)) {
+            return "Key '$trimmedKey' already exists."
+        }
+        if (oldKey.isNullOrEmpty() && prefs.contains(trimmedKey)) {
+            return "Key '$trimmedKey' already exists."
+        }
+
+        val parsed = parseTypedInput(type, rawInput) ?: return validationError(type)
+
+        val editor = prefs.edit()
+        val metaEditor = meta.edit()
+
+        if (!oldKey.isNullOrEmpty() && oldKey != trimmedKey) {
+            editor.remove(oldKey)
+            metaEditor.remove(oldKey)
+        }
+
+        when (parsed) {
+            is String -> editor.putString(trimmedKey, parsed)
+            is Int -> editor.putInt(trimmedKey, parsed)
+            is Long -> editor.putLong(trimmedKey, parsed)
+            is Float -> editor.putFloat(trimmedKey, parsed)
+            is Boolean -> editor.putBoolean(trimmedKey, parsed)
+            is Set<*> -> {
+                @Suppress("UNCHECKED_CAST")
+                editor.putStringSet(trimmedKey, parsed as Set<String>)
+            }
+            else -> return "Unsupported type '$type'."
+        }
+
+        // Keep display type for string-backed custom types.
+        if (type == "Data" || type == "Dictionary" || type == "Array") {
+            metaEditor.putString(trimmedKey, type)
+        } else {
+            metaEditor.remove(trimmedKey)
+        }
+
+        val saveSuccess = editor.commit()
+        val metaSuccess = metaEditor.commit()
+        return if (saveSuccess && metaSuccess) null else "Failed to save changes."
+    }
+
+    fun deleteSharedPrefEntry(context: Context, fileName: String, key: String): Boolean {
+        val prefs = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
+        val meta = getTypeMetaPrefs(context, fileName)
+        val saveSuccess = prefs.edit().remove(key).commit()
+        val metaSuccess = meta.edit().remove(key).commit()
+        return saveSuccess && metaSuccess
+    }
+
     fun buildWhereClause(filters: List<FilterCondition>): String {
         if (filters.isEmpty()) return ""
 
@@ -145,4 +235,134 @@ class DatabaseRepository private constructor() {
             ""
         }
     }
+
+    private fun getTypeMetaPrefs(context: Context, fileName: String) =
+        context.getSharedPreferences("${fileName}__dataviewer_type_meta", Context.MODE_PRIVATE)
+
+    private fun runtimeTypeName(value: Any?): String {
+        return when (value) {
+            is String -> "String"
+            is Int -> "Int"
+            is Long -> "Long"
+            is Float -> "Float"
+            is Boolean -> "Bool"
+            is Set<*> -> "StringSet"
+            else -> "Unknown"
+        }
+    }
+
+    private fun valueToDisplay(value: Any?): String {
+        return when (value) {
+            is Set<*> -> value.joinToString(", ")
+            null -> "null"
+            else -> value.toString()
+        }
+    }
+
+    private fun parseTypedInput(type: String, rawInput: String): Any? {
+        val text = rawInput.trim()
+
+        return when (type) {
+            "String" -> rawInput
+            "Int" -> text.toIntOrNull()
+            "Long" -> text.toLongOrNull()
+            "Float" -> text.toFloatOrNull()
+            "Bool" -> when (text.lowercase()) {
+                "true", "1" -> true
+                "false", "0" -> false
+                else -> null
+            }
+            "StringSet" -> {
+                val items = text.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                if (items.isEmpty()) null else items.toSet()
+            }
+            "Data" -> {
+                if (isValidBase64(text)) rawInput else null
+            }
+            "Dictionary" -> {
+                try {
+                    JSONObject(text)
+                    rawInput
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            "Array" -> {
+                try {
+                    JSONArray(text)
+                    rawInput
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            else -> null
+        }
+    }
+
+    private fun inferStringValueType(value: String): String {
+        val text = value.trim()
+        if (text.isEmpty()) return "String"
+
+        if (isJsonObject(text)) return "Dictionary"
+        if (isJsonArray(text)) return "Array"
+
+        val lower = text.lowercase()
+        if (lower == "true" || lower == "false" || lower == "1" || lower == "0") return "Bool"
+
+        if (text.toIntOrNull() != null) return "Int"
+        if (text.toLongOrNull() != null) return "Long"
+        if (text.toFloatOrNull() != null) return "Float"
+
+        // Do not auto-infer Data from plain strings to avoid false positives.
+        // Data should come from explicit editor type metadata.
+        return "String"
+    }
+
+    private fun isJsonObject(text: String): Boolean {
+        return try {
+            JSONObject(text)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun isJsonArray(text: String): Boolean {
+        return try {
+            JSONArray(text)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun isValidBase64(text: String): Boolean {
+        if (text.isEmpty()) return false
+        return try {
+            android.util.Base64.decode(text, android.util.Base64.DEFAULT)
+            true
+        } catch (_: IllegalArgumentException) {
+            false
+        }
+    }
+
+    private fun validationError(type: String): String {
+        return when (type) {
+            "Int" -> "Value must be a valid integer (e.g. 10, -4)."
+            "Long" -> "Value must be a valid long integer."
+            "Float" -> "Value must be a valid decimal number (Float)."
+            "Bool" -> "Bool accepts: true, false, 1, 0."
+            "StringSet" -> "StringSet must contain at least one comma-separated item."
+            "Data" -> "Data must be a valid Base64 string."
+            "Dictionary" -> "Dictionary must be a valid JSON object, e.g. {\"a\":1}."
+            "Array" -> "Array must be a valid JSON array, e.g. [1, \"a\", true]."
+            else -> "Value does not match selected type '$type'."
+        }
+    }
 }
+
+data class SharedPrefEntry(
+    val key: String,
+    val value: String,
+    val type: String
+)
