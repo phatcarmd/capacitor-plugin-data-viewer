@@ -143,12 +143,42 @@ class DatabaseRepository {
             
             for key in sortedKeys {
                 let value = dict[key] ?? "nil"
-                let type = String(describing: type(of: value))
+                let type = preferenceTypeName(for: value)
                 
                 rows.append([key, "\(value)", type])
             }
         }
         
         return (columns, rows)
+    }
+
+    func getPreferencesDictionary(from url: URL) -> [String: Any] {
+        (NSDictionary(contentsOf: url) as? [String: Any]) ?? [:]
+    }
+
+    func savePreferencesData(_ values: [String: Any], to url: URL) -> Bool {
+        (values as NSDictionary).write(to: url, atomically: true)
+    }
+
+    private func preferenceTypeName(for value: Any) -> String {
+        switch value {
+        case is String:
+            return "String"
+        case let number as NSNumber:
+            if CFGetTypeID(number) == CFBooleanGetTypeID() {
+                return "Bool"
+            }
+            // NSNumber can represent both Int and Double.
+            let doubleValue = number.doubleValue
+            return floor(doubleValue) == doubleValue ? "Int" : "Double"
+        case is [Any]:
+            return "Array"
+        case is [String: Any]:
+            return "Dictionary"
+        case is Data:
+            return "Data"
+        default:
+            return String(describing: type(of: value))
+        }
     }
 }

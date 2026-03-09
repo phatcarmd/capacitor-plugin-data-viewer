@@ -134,8 +134,8 @@ Contributions are welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for wor
 
 ## Repository and Support
 
-- Repository: `https://github.com/phatcarmd/data-viewer`
-- Issues: `https://github.com/phatcarmd/data-viewer/issues`
+- Repository: `https://github.com/phatcarmd/capacitor-plugin-data-viewer`
+- Issues: `https://github.com/phatcarmd/capacitor-plugin-data-viewer/issues`
 
 ## Author
 
