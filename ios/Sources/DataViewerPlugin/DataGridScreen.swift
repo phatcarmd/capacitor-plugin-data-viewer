@@ -17,6 +17,8 @@ struct DataGridScreen: View {
     
     @State private var showActionSheet = false
     @State private var selectedCellText = ""
+    @State private var sortColumn: String?
+    @State private var sortOrder: GridSortOrder = .none
     
     private let pageSize = 50
     private let repository = DatabaseRepository.shared
@@ -85,12 +87,25 @@ struct DataGridScreen: View {
         HStack(spacing: 0) {
             let displayCols = allColumns.filter { visibleColumns.contains($0) }
             ForEach(displayCols, id: \.self) { col in
-                Text(col)
-                    .font(.caption.bold())
-                    .frame(width: columnWidth, height: 40, alignment: .leading)
-                    .padding(.horizontal, 8)
-                    .background(Color(.systemGray6))
-                    .border(Color(.systemGray4), width: 0.5)
+                HStack(spacing: 4) {
+                    Text(col)
+                        .font(.caption.bold())
+                        .lineLimit(1)
+
+                    if sortColumn == col {
+                        Image(systemName: sortOrder == .asc ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(.blue)
+                    }
+                }
+                .frame(width: columnWidth, height: 40, alignment: .leading)
+                .padding(.horizontal, 8)
+                .background(Color(.systemGray6))
+                .border(Color(.systemGray4), width: 0.5)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    toggleSort(for: col)
+                }
             }
         }
     }
@@ -130,7 +145,9 @@ struct DataGridScreen: View {
                 tableName: tableName,
                 limit: pageSize,
                 offset: offset,
-                filters: filters
+                filters: filters,
+                sortColumn: sortOrder == .none ? nil : sortColumn,
+                sortOrder: sortOrder.sqlValue
             )
             
             DispatchQueue.main.async {
@@ -155,5 +172,40 @@ struct DataGridScreen: View {
         self.rows = []
         self.canLoadMore = true
         loadMoreData()
+    }
+
+    private func toggleSort(for column: String) {
+        if sortColumn != column {
+            sortColumn = column
+            sortOrder = .asc
+        } else {
+            switch sortOrder {
+            case .none:
+                sortOrder = .asc
+            case .asc:
+                sortOrder = .desc
+            case .desc:
+                sortOrder = .none
+                sortColumn = nil
+            }
+        }
+        refreshData()
+    }
+}
+
+private enum GridSortOrder {
+    case none
+    case asc
+    case desc
+
+    var sqlValue: String? {
+        switch self {
+        case .none:
+            return nil
+        case .asc:
+            return "ASC"
+        case .desc:
+            return "DESC"
+        }
     }
 }

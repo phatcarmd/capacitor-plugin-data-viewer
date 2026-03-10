@@ -86,7 +86,15 @@ class DatabaseRepository {
         return tables.sorted()
     }
     
-    func getTableData(from dbUrl: URL, tableName: String, limit: Int, offset: Int, filters: [FilterCondition]) -> (columns: [String], rows: [[String]]) {
+    func getTableData(
+        from dbUrl: URL,
+        tableName: String,
+        limit: Int,
+        offset: Int,
+        filters: [FilterCondition],
+        sortColumn: String? = nil,
+        sortOrder: String? = nil
+    ) -> (columns: [String], rows: [[String]]) {
         var db: OpaquePointer?
         var columns: [String] = []
         var rows: [[String]] = []
@@ -106,7 +114,15 @@ class DatabaseRepository {
                 }
             }
           
-            let query = "SELECT * FROM \(tableName) \(whereClause) LIMIT \(limit) OFFSET \(offset)"
+            var orderByClause = ""
+            if let sortColumn = sortColumn,
+               let sortOrder = sortOrder,
+               (sortOrder == "ASC" || sortOrder == "DESC") {
+                let safeColumn = sortColumn.replacingOccurrences(of: "\"", with: "\"\"")
+                orderByClause = "ORDER BY \"\(safeColumn)\" \(sortOrder)"
+            }
+
+            let query = "SELECT * FROM \(tableName) \(whereClause) \(orderByClause) LIMIT \(limit) OFFSET \(offset)"
             
             if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
                 let columnCount = sqlite3_column_count(statement)

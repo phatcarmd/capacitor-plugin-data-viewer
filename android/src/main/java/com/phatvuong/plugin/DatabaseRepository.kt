@@ -65,7 +65,16 @@ class DatabaseRepository private constructor() {
         return tableList
     }
 
-    fun getTableData(context: Context, dbName: String, tableName: String, page: Int, pageSize: Int, filters: List<FilterCondition>) : Pair<List<String>, List<List<String>>> {
+    fun getTableData(
+        context: Context,
+        dbName: String,
+        tableName: String,
+        page: Int,
+        pageSize: Int,
+        filters: List<FilterCondition>,
+        sortColumn: String? = null,
+        sortOrder: String? = null
+    ) : Pair<List<String>, List<List<String>>> {
         val columns = mutableListOf<String>()
         val rows = mutableListOf<List<String>>()
         val dbFile = context.getDatabasePath(dbName)
@@ -78,8 +87,14 @@ class DatabaseRepository private constructor() {
             }
 
             val whereClause = buildWhereClause(filters)
+            val orderByClause = if (!sortColumn.isNullOrBlank() && (sortOrder == "ASC" || sortOrder == "DESC")) {
+                val safeColumn = sortColumn.replace("\"", "\"\"")
+                " ORDER BY \"$safeColumn\" $sortOrder"
+            } else {
+                ""
+            }
             val offset = page * pageSize
-            val query = "SELECT * FROM $tableName $whereClause LIMIT $pageSize OFFSET $offset"
+            val query = "SELECT * FROM $tableName$whereClause$orderByClause LIMIT $pageSize OFFSET $offset"
             db.rawQuery(query, null).use { cursor ->
                 while (cursor.moveToNext()) {
                     val row = mutableListOf<String>()

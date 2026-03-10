@@ -1,7 +1,7 @@
 {
   "name": "capacitor-plugin-data-viewer",
-  "version": "0.0.1",
-  "description": "Explore local Sqlites, share references",
+  "version": "1.0.0",
+  "description": "A native Capacitor plugin to inspect local SQLite data and reference files directly inside your app.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -19,10 +19,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/phatcarmd/data-viewer.git"
+    "url": "git+https://github.com/phatcarmd/capacitor-plugin-data-viewer.git"
   },
   "bugs": {
-    "url": "https://github.com/phatcarmd/data-viewer/issues"
+    "url": "https://github.com/phatcarmd/capacitor-plugin-data-viewer/issues"
   },
   "keywords": [
     "capacitor",

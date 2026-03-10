@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -96,7 +99,14 @@ fun SharedPreferencesScreen(
     var showTypeMenu by remember { mutableStateOf(false) }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var keySortOrder by remember { mutableStateOf(KeySortOrder.NONE) }
     val editableTypes = listOf("String", "Int", "Long", "Float", "Bool", "StringSet", "Data", "Dictionary", "Array")
+
+    val displayedRows = when (keySortOrder) {
+        KeySortOrder.NONE -> rows.toList()
+        KeySortOrder.ASC -> rows.sortedBy { it.key.lowercase() }
+        KeySortOrder.DESC -> rows.sortedByDescending { it.key.lowercase() }
+    }
 
     fun reload() {
         rows.clear()
@@ -305,10 +315,30 @@ fun SharedPreferencesScreen(
                                 .fillMaxWidth()
                                 .height(IntrinsicSize.Min),
                         ) {
-                            Text(
-                                text = "Key",
-                                modifier = Modifier.weight(0.3f).padding(12.dp),
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .weight(0.3f)
+                                    .clickable {
+                                        keySortOrder = when (keySortOrder) {
+                                            KeySortOrder.NONE -> KeySortOrder.ASC
+                                            KeySortOrder.ASC -> KeySortOrder.DESC
+                                            KeySortOrder.DESC -> KeySortOrder.NONE
+                                        }
+                                    }
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "Key")
+
+                                if (keySortOrder != KeySortOrder.NONE) {
+                                    Icon(
+                                        imageVector = if (keySortOrder == KeySortOrder.ASC) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
 
                             Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(dividerColor))
 
@@ -329,7 +359,7 @@ fun SharedPreferencesScreen(
                 }
             }
 
-            itemsIndexed(rows) { index, item ->
+            itemsIndexed(displayedRows) { index, item ->
                 Column {
                     Row(
                         modifier = Modifier
@@ -538,4 +568,10 @@ private fun PreferenceEditorDialog(
 private enum class EditorMode {
     CREATE,
     EDIT
+}
+
+private enum class KeySortOrder {
+    NONE,
+    ASC,
+    DESC
 }

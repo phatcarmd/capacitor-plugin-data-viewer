@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,32 +94,27 @@ fun DataGridScreen(dbName: String, tableName: String) {
     val rowData = remember { mutableStateListOf<List<String>>() }
     var currentPage by remember { mutableIntStateOf(0) }
     var canLoadMore by remember { mutableStateOf(true) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
 
     var selectedCellData by remember { mutableStateOf<String?>(null) }
     var showCellInfoDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var currentFilters by remember { mutableStateOf(emptyList<FilterCondition>()) }
+    var sortColumn by remember { mutableStateOf<String?>(null) }
+    var sortOrder by remember { mutableStateOf(SortOrder.NONE) }
 
     val visibleIndices = allColumns.indices.filter { allColumns[it] in visibleColumns }
 
     val horizontalScrollState = rememberScrollState()
 
-    LaunchedEffect(Unit) {
-        isLoading = true
-        val (cols, rows) = repository.getTableData(context, dbName, tableName, 0, 100, currentFilters)
-        allColumns = cols
-        visibleColumns = cols.toSet()
-        rowData.addAll(rows)
-        isLoading = false
-    }
-
-    LaunchedEffect(currentPage, currentFilters) {
+    LaunchedEffect(currentPage, currentFilters, sortColumn, sortOrder) {
         isLoading = true
         val (cols, newRows) = repository.getTableData(
             context, dbName, tableName,
             currentPage, 100,
-            currentFilters
+            currentFilters,
+            sortColumn,
+            sortOrder.sqlValue
         )
 
         if (allColumns.isEmpty()) {
@@ -186,13 +182,50 @@ fun DataGridScreen(dbName: String, tableName: String) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            Box(modifier = Modifier.horizontalScroll(horizontalScrollState)) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+            if (isLoading && rowData.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Loading records...")
+                    }
+                }
+            } else {
+                Box(modifier = Modifier.horizontalScroll(horizontalScrollState)) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
 
                     stickyHeader {
                         if (visibleColumns.isNotEmpty()) {
                             Surface(shadowElevation = 2.dp) {
-                                TableRow(allColumns.filter { it in visibleColumns }, index = 0, isHeader = true)
+                                TableRow(
+                                    row = allColumns.filter { it in visibleColumns },
+                                    index = 0,
+                                    isHeader = true,
+                                    sortColumn = sortColumn,
+                                    sortOrder = sortOrder,
+                                    onHeaderClick = { column ->
+                                        if (sortColumn != column) {
+                                            sortColumn = column
+                                            sortOrder = SortOrder.ASC
+                                        } else {
+                                            sortOrder = when (sortOrder) {
+                                                SortOrder.NONE -> SortOrder.ASC
+                                                SortOrder.ASC -> SortOrder.DESC
+                                                SortOrder.DESC -> {
+                                                    sortColumn = null
+                                                    SortOrder.NONE
+                                                }
+                                            }
+                                        }
+
+                                        currentPage = 0
+                                        canLoadMore = true
+                                    }
+                                )
                             }
                         }
                     }
@@ -202,7 +235,16 @@ fun DataGridScreen(dbName: String, tableName: String) {
                             LaunchedEffect(Unit) {
                                 isLoading = true
                                 currentPage++
-                                val (_, newRows) = repository.getTableData(context, dbName, tableName, currentPage, 100, currentFilters)
+                                val (_, newRows) = repository.getTableData(
+                                    context,
+                                    dbName,
+                                    tableName,
+                                    currentPage,
+                                    100,
+                                    currentFilters,
+                                    sortColumn,
+                                    sortOrder.sqlValue
+                                )
                                 if (newRows.isEmpty()) {
                                     canLoadMore = false
                                 } else {
@@ -220,9 +262,10 @@ fun DataGridScreen(dbName: String, tableName: String) {
                         })
                     }
 
-                    if (isLoading && rowData.isNotEmpty()) {
-                        item {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        if (isLoading && rowData.isNotEmpty()) {
+                            item {
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            }
                         }
                     }
                 }
@@ -232,7 +275,15 @@ fun DataGridScreen(dbName: String, tableName: String) {
 }
 
 @Composable
-fun TableRow(row: List<String>, isHeader: Boolean = false, index: Int, onCellClick: ((String) -> Unit)? = null) {
+fun TableRow(
+    row: List<String>,
+    isHeader: Boolean = false,
+    index: Int,
+    onCellClick: ((String) -> Unit)? = null,
+    sortColumn: String? = null,
+    sortOrder: SortOrder = SortOrder.NONE,
+    onHeaderClick: ((String) -> Unit)? = null,
+) {
     val bgColor = when {
         isHeader -> MaterialTheme.colorScheme.secondaryContainer
         index % 2 != 0 -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
@@ -248,20 +299,37 @@ fun TableRow(row: List<String>, isHeader: Boolean = false, index: Int, onCellCli
                 .height(IntrinsicSize.Min)
         ) {
             row.forEachIndexed { index, cell ->
-                // Nội dung ô dữ liệu
-                Text(
-                    text = cell,
+                Row(
                     modifier = Modifier
                         .width(250.dp)
-                        .clickable(enabled = !isHeader) {
-                            onCellClick?.invoke(cell)
+                        .clickable {
+                            if (isHeader) {
+                                onHeaderClick?.invoke(cell)
+                            } else {
+                                onCellClick?.invoke(cell)
+                            }
                         }
                         .padding(12.dp),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = fontWeight,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = cell,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = fontWeight,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    if (isHeader && sortColumn == cell && sortOrder != SortOrder.NONE) {
+                        Icon(
+                            imageVector = if (sortOrder == SortOrder.ASC) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
 
                 if (index < row.size - 1) {
                     VerticalDivider(
@@ -274,6 +342,19 @@ fun TableRow(row: List<String>, isHeader: Boolean = false, index: Int, onCellCli
         }
         HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
     }
+}
+
+enum class SortOrder {
+    NONE,
+    ASC,
+    DESC;
+
+    val sqlValue: String?
+        get() = when (this) {
+            NONE -> null
+            ASC -> "ASC"
+            DESC -> "DESC"
+        }
 }
 
 @Composable

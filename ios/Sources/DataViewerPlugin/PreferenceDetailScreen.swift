@@ -10,6 +10,7 @@ import SwiftUI
 
 struct PreferenceDetailScreen: View {
     let fileUrl: URL
+    @State private var allRows: [[String]] = []
     @State private var rows: [[String]] = []
     @State private var columns = ["Key", "Value", "Type"]
     @State private var showActionSheet = false
@@ -23,6 +24,7 @@ struct PreferenceDetailScreen: View {
     @State private var draftType = "String"
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
+    @State private var keySortOrder: KeySortOrder = .none
     
     private let repository = DatabaseRepository.shared
     private let columnWidth: CGFloat = 150
@@ -130,11 +132,19 @@ struct PreferenceDetailScreen: View {
         HStack(spacing: 0) {
             ForEach(columns, id: \.self) { col in
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(col)
-                        .font(.caption.bold())
-                        .frame(width: columnWidth - 16, alignment: .leading)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 8)
+                    HStack(spacing: 4) {
+                        Text(col)
+                            .font(.caption.bold())
+
+                        if col == "Key", keySortOrder != .none {
+                            Image(systemName: keySortOrder == .asc ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
+                                .font(.system(size: 9))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .frame(width: columnWidth - 16, alignment: .leading)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
 
                     Spacer(minLength: 0)
                 }
@@ -146,6 +156,12 @@ struct PreferenceDetailScreen: View {
                         .foregroundColor(Color(.systemGray4)),
                     alignment: .trailing
                 )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if col == "Key" {
+                        toggleKeySort()
+                    }
+                }
             }
         }
         .overlay(
@@ -191,7 +207,35 @@ struct PreferenceDetailScreen: View {
 
     private func loadRows() {
         let data = repository.getPreferencesData(from: fileUrl)
-        self.rows = data.rows
+        self.allRows = data.rows
+        applyKeySort()
+    }
+
+    private func toggleKeySort() {
+        switch keySortOrder {
+        case .none:
+            keySortOrder = .asc
+        case .asc:
+            keySortOrder = .desc
+        case .desc:
+            keySortOrder = .none
+        }
+        applyKeySort()
+    }
+
+    private func applyKeySort() {
+        switch keySortOrder {
+        case .none:
+            rows = allRows
+        case .asc:
+            rows = allRows.sorted { lhs, rhs in
+                (lhs.first ?? "").localizedCaseInsensitiveCompare(rhs.first ?? "") == .orderedAscending
+            }
+        case .desc:
+            rows = allRows.sorted { lhs, rhs in
+                (lhs.first ?? "").localizedCaseInsensitiveCompare(rhs.first ?? "") == .orderedDescending
+            }
+        }
     }
 
     private func beginCreate() {
@@ -405,4 +449,10 @@ struct PreferenceDetailScreen: View {
 private enum PreferenceEditorMode {
     case create
     case edit
+}
+
+private enum KeySortOrder {
+    case none
+    case asc
+    case desc
 }
