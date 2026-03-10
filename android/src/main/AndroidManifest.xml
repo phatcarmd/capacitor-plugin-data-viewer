@@ -4,5 +4,15 @@
         <activity android:name=".TablesActivity" android:exported="false"/>
         <activity android:name=".RecordsActivity" android:exported="false"/>
         <activity android:name=".SharedPreferencesActivity" android:exported="false"/>
+
+        <provider
+            android:name=".DataViewerFileProvider"
+            android:authorities="${applicationId}.dataviewer.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/dataviewer_file_paths" />
+        </provider>
     </application>
 </manifest>

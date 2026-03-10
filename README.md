@@ -14,6 +14,7 @@ A native Capacitor plugin to inspect local SQLite data and reference files direc
 - Inspect records with a responsive, mobile-friendly data grid.
 - Configure visible columns and table filters for focused debugging.
 - Copy any cell value from both SQLite and Shared Preferences views.
+- Select multiple database/preference files and share them externally (Mail, AirDrop, Messages, etc.).
 - Inspect Shared Preferences with key/value/type visualization.
 - Add, edit, and delete Shared Preferences entries directly in-app.
 - Validate typed input before saving (`String`, `Int`, `Double/Float`, `Bool`, `Data`, `Dictionary`, `Array`, platform-dependent numeric variants).
@@ -24,6 +25,7 @@ A native Capacitor plugin to inspect local SQLite data and reference files direc
 ### SQLite Explorer
 
 - List local database files and browse tables.
+- Select one or multiple database files and share them to external apps.
 - Paginated record viewer optimized for large tables.
 - Horizontal/vertical scroll data grid for wide datasets.
 - Per-table settings:
@@ -34,6 +36,7 @@ A native Capacitor plugin to inspect local SQLite data and reference files direc
 ### Shared Preferences / Plist Explorer
 
 - List preference entries with explicit `Key`, `Value`, and `Type` columns.
+- Select preference files from explorer and share them externally.
 - Open cell actions dialog to copy values quickly.
 - CRUD support for preference entries:
   - `Add Entry`
