@@ -87,6 +87,7 @@ struct DataExplorerView: View {
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("Data Explorer")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(isSelectionMode ? "Cancel" : "Select") {
@@ -117,7 +118,6 @@ struct DataExplorerView: View {
                     }
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showShareSheet) {
                 ShareSheet(activityItems: selectedFiles.sorted { $0.lastPathComponent < $1.lastPathComponent })
             }
