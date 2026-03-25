@@ -34,9 +34,9 @@ A native Capacitor plugin to inspect local SQLite data, app preferences, and liv
   - Add filter conditions (`=`, `LIKE`, `IN`, `>`, `<`, `!=`, etc. depending on platform implementation).
 - Tap cell to open quick actions (copy value).
 
-### Network Inspector (Android)
+### Network Inspector
 
-- Track all `fetch` and `XMLHttpRequest` calls made from JavaScript.
+- Track all `fetch` and `XMLHttpRequest` calls made from JavaScript — available on both **Android and iOS**.
 - Works transparently alongside `CapacitorHttp` — no app HTTP code changes required.
 - Each captured call shows:
   - HTTP method (color-coded badge: GET, POST, PUT, PATCH, DELETE)
@@ -148,7 +148,8 @@ import { DataViewer } from 'capacitor-plugin-data-viewer';
 import { Capacitor } from '@capacitor/core';
 
 // Recommended: only track in non-production builds
-if (Capacitor.getPlatform() === 'android') {
+const platform = Capacitor.getPlatform();
+if (platform === 'android' || platform === 'ios') {
   await DataViewer.startNetworkTracking();
 }
 
@@ -187,7 +188,7 @@ Recommended usage:
 explore() => Promise<void>
 ```
 
-Opens the native Data Explorer UI. Displays SQLite databases, Shared Preferences / plist files, and (Android) captured network calls.
+Opens the native Data Explorer UI. Displays SQLite databases, Shared Preferences / plist files, and captured network calls.
 
 --------------------
 
@@ -198,7 +199,7 @@ Opens the native Data Explorer UI. Displays SQLite databases, Shared Preferences
 startNetworkTracking() => Promise<void>
 ```
 
-**(Android only)** Activates HTTP network call tracking. Injects a JavaScript patch into the WebView that intercepts all `fetch` and `XMLHttpRequest` calls made from JavaScript. The Promise resolves only after the patch is fully applied — it is safe to make network calls immediately after `await`.
+Activates HTTP network call tracking on **Android and iOS**. Injects a JavaScript patch into the WebView that intercepts all `fetch` and `XMLHttpRequest` calls made from JavaScript. The Promise resolves only after the patch is fully applied — it is safe to make network calls immediately after `await`.
 
 Static assets (images, fonts, SVGs, CSS, JS files) and local protocols (`capacitor://`, `ionic://`, `file://`) are filtered out automatically.
 
@@ -213,7 +214,7 @@ Call this once during app initialization, before any network requests are made.
 stopNetworkTracking() => Promise<void>
 ```
 
-**(Android only)** Pauses network call tracking. Existing captured calls are preserved. Call `startNetworkTracking()` again to resume.
+Pauses network call tracking on **Android and iOS**. Existing captured calls are preserved. Call `startNetworkTracking()` again to resume.
 
 --------------------
 

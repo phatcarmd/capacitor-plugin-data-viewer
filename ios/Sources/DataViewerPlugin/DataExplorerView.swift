@@ -57,6 +57,13 @@ struct DataExplorerView: View {
                     }
                 }
                 
+                // --- NETWORK ---
+                Section(header: Label("Network", systemImage: "network")) {
+                    NavigationLink(destination: NetworkCallsView()) {
+                        FileRowView(fileName: "Network Calls", icon: "arrow.up.arrow.down.circle.fill", iconColor: .purple)
+                    }
+                }
+
                 // --- SHARED PREFERENCES ---
                 Section(header: Label("Shared Preferences", systemImage: "gearshape.fill")) {
                     ForEach(prefFiles, id: \.self) { file in
