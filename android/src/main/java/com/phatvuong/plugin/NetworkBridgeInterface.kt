@@ -182,6 +182,48 @@ class NetworkBridgeInterface {
   }
   PatchedXHR.prototype = _XHR.prototype;
   window.XMLHttpRequest = PatchedXHR;
+
+  // Patch CapacitorHttp.request() — for apps using CapacitorHttp directly
+  (function() {
+    var cap = window.Capacitor;
+    if (!cap || typeof cap.nativePromise !== 'function') return;
+    var _np = cap.nativePromise;
+    cap.nativePromise = function(pluginName, methodName, options) {
+      if (pluginName === 'CapacitorHttp' && options && options.url) {
+        var startTime = Date.now();
+        var callId = Math.random().toString(36).substr(2, 9);
+        var method = (options.method || 'GET').toUpperCase();
+        var reqBody = null;
+        try {
+          if (options.data != null) {
+            reqBody = typeof options.data === 'string' ? options.data : JSON.stringify(options.data);
+          }
+        } catch(e) {}
+        return _np.apply(cap, arguments).then(function(response) {
+          var resBody = null;
+          try { resBody = typeof response.data === 'string' ? response.data : JSON.stringify(response.data); } catch(e) {}
+          sendLog({
+            id: callId, url: options.url, method: method,
+            requestHeaders: options.headers || {}, requestBody: reqBody,
+            status: response.status, responseHeaders: response.headers || {},
+            responseBody: truncate(resBody),
+            duration: Date.now() - startTime, timestamp: startTime, error: null
+          });
+          return response;
+        }, function(err) {
+          sendLog({
+            id: callId, url: options.url, method: method,
+            requestHeaders: options.headers || {}, requestBody: reqBody,
+            status: null, responseHeaders: {}, responseBody: null,
+            duration: Date.now() - startTime, timestamp: startTime,
+            error: err ? (err.message || String(err)) : 'Unknown error'
+          });
+          throw err;
+        });
+      }
+      return _np.apply(cap, arguments);
+    };
+  })();
 })();
 """.trimIndent()
     }
