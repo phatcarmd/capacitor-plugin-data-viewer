@@ -31,9 +31,9 @@ public class DataViewerPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func startNetworkTracking(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             NetworkCallStore.shared.webView = self.bridge?.webView
-            self.bridge?.webView?.evaluateJavaScript(NetworkCallStore.injectionScript) { _, _ in
+            self.bridge?.webView?.evaluateJavaScript(NetworkCallStore.injectionScript) { [weak self] _, _ in
                 // Re-enable in case stopNetworkTracking was called previously
-                self.bridge?.webView?.evaluateJavaScript(
+                self?.bridge?.webView?.evaluateJavaScript(
                     "window.__dvNetTrackingEnabled = true; undefined",
                     completionHandler: nil
                 )

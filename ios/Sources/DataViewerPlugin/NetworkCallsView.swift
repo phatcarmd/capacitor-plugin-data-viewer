@@ -52,10 +52,14 @@ struct NetworkCallsView: View {
 struct NetworkCallRowView: View {
     let call: NetworkCall
 
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss.SSS"
+        return f
+    }()
+
     private var timeString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss.SSS"
-        return formatter.string(from: Date(timeIntervalSince1970: call.timestamp))
+        NetworkCallRowView.timeFormatter.string(from: Date(timeIntervalSince1970: call.timestamp))
     }
 
     var body: some View {

@@ -4,10 +4,14 @@ import UIKit
 struct NetworkCallDetailView: View {
     let call: NetworkCall
 
-    private var dateString: String {
+    private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-        return f.string(from: Date(timeIntervalSince1970: call.timestamp))
+        return f
+    }()
+
+    private var dateString: String {
+        NetworkCallDetailView.dateFormatter.string(from: Date(timeIntervalSince1970: call.timestamp))
     }
 
     var body: some View {

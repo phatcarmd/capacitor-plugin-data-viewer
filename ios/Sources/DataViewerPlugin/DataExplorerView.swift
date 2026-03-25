@@ -20,17 +20,31 @@ struct DataExplorerView: View {
     let onDismiss: () -> Void
 
     init(onDismiss: @escaping () -> Void) {
-        self.onDismiss = onDismiss
+        // Save host app's current nav bar appearance before overwriting
+        let prevStandard   = UINavigationBar.appearance().standardAppearance
+        let prevScrollEdge = UINavigationBar.appearance().scrollEdgeAppearance
+        let prevCompact    = UINavigationBar.appearance().compactAppearance
+        let prevTint       = UINavigationBar.appearance().tintColor
+
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor.systemPurple
         appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
         appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
-        
+
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance
         UINavigationBar.appearance().tintColor = .white
+
+        // Restore host app appearance when plugin is dismissed
+        self.onDismiss = {
+            UINavigationBar.appearance().standardAppearance = prevStandard
+            UINavigationBar.appearance().scrollEdgeAppearance = prevScrollEdge
+            UINavigationBar.appearance().compactAppearance = prevCompact
+            UINavigationBar.appearance().tintColor = prevTint
+            onDismiss()
+        }
     }
 
     var body: some View {
@@ -122,8 +136,14 @@ struct DataExplorerView: View {
                 ShareSheet(activityItems: selectedFiles.sorted { $0.lastPathComponent < $1.lastPathComponent })
             }
             .onAppear {
-                dbFiles = repository.getDatabaseFiles()
-                prefFiles = repository.getSharedPreferencesFiles()
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let dbs   = repository.getDatabaseFiles()
+                    let prefs = repository.getSharedPreferencesFiles()
+                    DispatchQueue.main.async {
+                        dbFiles   = dbs
+                        prefFiles = prefs
+                    }
+                }
             }
         }
         .accentColor(.white)
