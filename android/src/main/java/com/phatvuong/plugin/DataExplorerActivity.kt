@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -236,6 +237,26 @@ fun DatabasesListScreen(fileNames: List<String>, prefFiles: List<String>) {
                                 putExtra("PREF_NAME", prefName)
                             }
                             context.startActivity(intent)
+                        }
+                    }
+                )
+                HorizontalDivider()
+            }
+
+            item {
+                SectionHeader(title = "Network", icon = Icons.Default.Language)
+            }
+            item {
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            "Network Calls",
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        if (!isSelectionMode) {
+                            context.startActivity(Intent(context, NetworkCallsActivity::class.java))
                         }
                     }
                 )

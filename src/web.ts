@@ -8,7 +8,9 @@ export class DataViewerWeb extends WebPlugin implements DataViewerPlugin {
     return options;
   }
 
-  async explore(): Promise<void> {
-    
-  }
+  async explore(): Promise<void> {}
+
+  async startNetworkTracking(): Promise<void> {}
+
+  async stopNetworkTracking(): Promise<void> {}
 }

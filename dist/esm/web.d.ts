@@ -7,4 +7,5 @@ export declare class DataViewerWeb extends WebPlugin implements DataViewerPlugin
         value: string;
     }>;
     explore(): Promise<void>;
+    startNetworkTracking(): Promise<void>;
 }

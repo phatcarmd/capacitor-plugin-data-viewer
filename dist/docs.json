@@ -14,6 +14,16 @@
         "docs": "",
         "complexTypes": [],
         "slug": "explore"
+      },
+      {
+        "name": "startNetworkTracking",
+        "signature": "() => Promise<void>",
+        "parameters": [],
+        "returns": "Promise<void>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [],
+        "slug": "startnetworktracking"
       }
     ],
     "properties": []

@@ -17,4 +17,14 @@ public class DataViewerPlugin extends Plugin {
         implementation.explore(getContext());
         call.resolve(ret);
     }
+
+    @PluginMethod
+    public void startNetworkTracking(PluginCall call) {
+        implementation.startNetworkTracking(getBridge(), call);
+    }
+
+    @PluginMethod
+    public void stopNetworkTracking(PluginCall call) {
+        implementation.stopNetworkTracking(getBridge(), call);
+    }
 }

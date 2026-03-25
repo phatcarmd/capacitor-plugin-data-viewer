@@ -13,8 +13,8 @@ class DataViewerWeb extends core.WebPlugin {
         console.log('ECHO', options);
         return options;
     }
-    async explore() {
-    }
+    async explore() { }
+    async startNetworkTracking() { }
 }
 
 var web = /*#__PURE__*/Object.freeze({

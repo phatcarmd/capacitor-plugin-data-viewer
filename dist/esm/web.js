@@ -4,7 +4,7 @@ export class DataViewerWeb extends WebPlugin {
         console.log('ECHO', options);
         return options;
     }
-    async explore() {
-    }
+    async explore() { }
+    async startNetworkTracking() { }
 }
 //# sourceMappingURL=web.js.map
