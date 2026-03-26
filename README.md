@@ -72,41 +72,59 @@ A native Capacitor plugin to inspect local SQLite data, app preferences, and liv
 
 ## Screenshots
 
+### 1 — Database Explorer
+
 <table>
-	<tr>
-		<td align="center">
-			<img src="screenshots/databases.png" alt="Database List" width="260" height="405" /><br />
-			<strong>Database List</strong><br />
-			View all local SQLite databases available in the app.
-		</td>
-		<td align="center">
-			<img src="screenshots/tables.png" alt="Table List" width="260" height="405" /><br />
-			<strong>Table List</strong><br />
-			Browse tables inside the selected database.
-		</td>
-		<td align="center">
-			<img src="screenshots/records.png" alt="Records" width="260" height="405" /><br />
-			<strong>Records</strong><br />
-			Inspect row data with a readable mobile data grid.
-		</td>
-	</tr>
-	<tr>
-		<td align="center">
-			<img src="screenshots/setting_columns.png" alt="Column Settings" width="260" height="405" /><br />
-			<strong>Column Settings</strong><br />
-			Choose which columns are visible for faster analysis.
-		</td>
-		<td align="center">
-			<img src="screenshots/setting_filters.png" alt="Filter Settings" width="260" height="405" /><br />
-			<strong>Filter Settings</strong><br />
-			Apply filters to focus on relevant records.
-		</td>
-		<td align="center">
-			<img src="screenshots/preferences.png" alt="Preferences" width="260" height="405" /><br />
-			<strong>Preferences</strong><br />
-			Configure viewer behavior for your debug workflow.
-		</td>
-	</tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/android_explorer.png" alt="Explorer" width="200" height="420" style="object-fit:cover" /><br/>
+      <strong>Explorer</strong><br/>Entry point — lists all databases, network, and preference files.
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/android_db_tables.png" alt="Table List" width="200" height="420" style="object-fit:cover" /><br/>
+      <strong>Table List</strong><br/>Browse all tables inside a selected database.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshots/android_db_records.png" alt="Records Grid" width="200" height="420" style="object-fit:cover" /><br/>
+      <strong>Records Grid</strong><br/>Inspect row data with a scrollable data grid.
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshots/android_db_settings.png" alt="Column & Filter Settings" width="200" height="420" style="object-fit:cover" /><br/>
+      <strong>Column &amp; Filter Settings</strong><br/>Toggle column visibility and apply filter conditions.
+    </td>
+  </tr>
+</table>
+
+### 2 — Shared Preferences / Plist
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="screenshots/android_pref_list.png" alt="Preferences List" width="200" height="420" style="object-fit:cover" /><br/>
+      <strong>Preferences List</strong><br/>Key / Value / Type table with sort and copy support.
+    </td>
+    <td align="center">
+      <img src="screenshots/android_pref_edit.png" alt="Add / Edit Entry" width="200" height="420" style="object-fit:cover" /><br/>
+      <strong>Add / Edit Entry</strong><br/>Type-aware editor with validation before save.
+    </td>
+  </tr>
+</table>
+
+### 3 — Network Inspector
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="screenshots/android_network_list.png" alt="Network Calls List" width="200" height="420" style="object-fit:cover" /><br/>
+      <strong>Network Calls List</strong><br/>All captured HTTP calls with method badge, status, and duration.
+    </td>
+    <td align="center">
+      <img src="screenshots/android_network_detail.png" alt="Call Detail" width="200" height="420" style="object-fit:cover" /><br/>
+      <strong>Call Detail</strong><br/>Full request/response headers and pretty-printed JSON body.
+    </td>
+  </tr>
 </table>
 
 ## Compatibility
