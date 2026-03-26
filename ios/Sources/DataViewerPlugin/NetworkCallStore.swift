@@ -76,6 +76,27 @@ class NetworkCallStore: ObservableObject {
     return str.length > 50000 ? str.substring(0, 50000) + '...[truncated]' : str;
   }
 
+  function isBinary(contentType) {
+    if (!contentType) return false;
+    var ct = contentType.toLowerCase();
+    return /^(image|video|audio)\\//.test(ct) ||
+      /^font\\//.test(ct) ||
+      /application\\/(octet-stream|pdf|zip|x-zip|gzip|x-tar|x-rar|wasm|protobuf|msgpack|cbor)/.test(ct) ||
+      /multipart\\/form-data/.test(ct);
+  }
+
+  function formatSize(bytes) {
+    if (!bytes || isNaN(bytes) || bytes <= 0) return 'unknown size';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  function binarySummary(contentType, contentLength) {
+    var size = contentLength ? formatSize(parseInt(contentLength)) : 'unknown size';
+    return '[binary: ' + (contentType || 'unknown') + ', ' + size + ']';
+  }
+
   var _fetch = window.fetch;
   window.fetch = function(input, init) {
     var url = (typeof input === 'string') ? input : (input && input.url) || '';
@@ -88,7 +109,17 @@ class NetworkCallStore: ObservableObject {
     var reqBody = null;
     try {
       var b = init && init.body;
-      if (b) reqBody = typeof b === 'string' ? b : JSON.stringify(b);
+      if (b) {
+        if (typeof b === 'string') {
+          reqBody = b;
+        } else if (b instanceof FormData) {
+          reqBody = '[multipart/form-data]';
+        } else if (b instanceof Blob || b instanceof ArrayBuffer) {
+          reqBody = '[binary: ' + formatSize(b.size || b.byteLength) + ']';
+        } else {
+          reqBody = JSON.stringify(b);
+        }
+      }
     } catch(e) {}
     var startTime = Date.now();
     var callId = Math.random().toString(36).substr(2, 9);
@@ -96,23 +127,35 @@ class NetworkCallStore: ObservableObject {
     return _fetch.apply(this, arguments).then(function(response) {
       var status = response.status;
       var resHeaders = headersToObj(response.headers);
-      var cloned = response.clone();
-      cloned.text().then(function(body) {
+      var contentType = response.headers.get('content-type') || '';
+      var contentLength = response.headers.get('content-length');
+      var duration = Date.now() - startTime;
+      if (isBinary(contentType)) {
         sendLog({
           id: callId, url: url, method: method,
           requestHeaders: reqHeaders, requestBody: reqBody,
           status: status, responseHeaders: resHeaders,
-          responseBody: truncate(body),
-          duration: Date.now() - startTime, timestamp: startTime, error: null
+          responseBody: binarySummary(contentType, contentLength),
+          duration: duration, timestamp: startTime, error: null
         });
-      }).catch(function() {
-        sendLog({
-          id: callId, url: url, method: method,
-          requestHeaders: reqHeaders, requestBody: reqBody,
-          status: status, responseHeaders: resHeaders, responseBody: null,
-          duration: Date.now() - startTime, timestamp: startTime, error: null
+      } else {
+        response.clone().text().then(function(body) {
+          sendLog({
+            id: callId, url: url, method: method,
+            requestHeaders: reqHeaders, requestBody: reqBody,
+            status: status, responseHeaders: resHeaders,
+            responseBody: truncate(body),
+            duration: duration, timestamp: startTime, error: null
+          });
+        }).catch(function() {
+          sendLog({
+            id: callId, url: url, method: method,
+            requestHeaders: reqHeaders, requestBody: reqBody,
+            status: status, responseHeaders: resHeaders, responseBody: null,
+            duration: duration, timestamp: startTime, error: null
+          });
         });
-      });
+      }
       return response;
     }, function(err) {
       sendLog({
@@ -149,7 +192,17 @@ class NetworkCallStore: ObservableObject {
     xhr.send = function(body) {
       _startTime = Date.now();
       if (body) {
-        try { _reqBody = typeof body === 'string' ? body : JSON.stringify(body); } catch(e) {}
+        try {
+          if (typeof body === 'string') {
+            _reqBody = body;
+          } else if (body instanceof FormData) {
+            _reqBody = '[multipart/form-data]';
+          } else if (body instanceof Blob || body instanceof ArrayBuffer) {
+            _reqBody = '[binary: ' + formatSize(body.size || body.byteLength) + ']';
+          } else {
+            _reqBody = JSON.stringify(body);
+          }
+        } catch(e) {}
       }
       xhr.addEventListener('loadend', function() {
         var resHeaders = {};
@@ -160,12 +213,17 @@ class NetworkCallStore: ObservableObject {
             if (idx > 0) resHeaders[line.substring(0, idx)] = line.substring(idx + 2);
           });
         } catch(e) {}
+        var contentType = xhr.getResponseHeader('content-type') || '';
+        var contentLength = xhr.getResponseHeader('content-length');
+        var resBody = (xhr.responseType === 'blob' || xhr.responseType === 'arraybuffer' || isBinary(contentType))
+          ? binarySummary(contentType, contentLength)
+          : truncate(xhr.responseText);
         sendLog({
           id: callId, url: _url, method: _method,
           requestHeaders: _reqHeaders, requestBody: _reqBody,
           status: xhr.status || null,
           responseHeaders: resHeaders,
-          responseBody: truncate(xhr.responseText),
+          responseBody: resBody,
           duration: Date.now() - _startTime, timestamp: _startTime,
           error: xhr.status === 0 ? 'Network error' : null
         });

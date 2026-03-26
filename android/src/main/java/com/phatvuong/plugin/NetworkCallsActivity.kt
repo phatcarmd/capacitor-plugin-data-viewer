@@ -21,7 +21,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -38,6 +42,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,8 +51,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -65,6 +72,7 @@ class NetworkCallsActivity : ComponentActivity() {
                 isLoading = isLoading.value,
                 onRefresh = { loadFromJS() },
                 onClear = { clearCalls() },
+                onShare = { shareCallsAsFile() },
                 onCallClick = { call ->
                     NetworkCallStore.add(call) // ensure detail can access it
                     startActivity(
@@ -137,6 +145,26 @@ class NetworkCallsActivity : ComponentActivity() {
         return result
     }
 
+    private fun shareCallsAsFile() {
+        if (calls.isEmpty()) return
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
+        val text = buildNetworkLogText(calls, dateFormat)
+        val file = File(cacheDir, "network_calls.txt")
+        file.writeText(text)
+        val uri = FileProvider.getUriForFile(
+            this,
+            "${packageName}.dataviewer.fileprovider",
+            file
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "Network Calls Log")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(intent, "Share"))
+    }
+
     private fun JSONObject?.toMap(): Map<String, String> {
         if (this == null) return emptyMap()
         return keys().asSequence().associateWith { optString(it) }
@@ -150,10 +178,12 @@ fun NetworkCallsScreen(
     isLoading: Boolean,
     onRefresh: () -> Unit,
     onClear: () -> Unit,
+    onShare: () -> Unit,
     onCallClick: (NetworkCall) -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
+    var showMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -165,20 +195,32 @@ fun NetworkCallsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onRefresh) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    if (calls.isNotEmpty()) {
-                        IconButton(onClick = onClear) {
-                            Icon(
-                                Icons.Default.DeleteSweep,
-                                contentDescription = "Clear",
-                                tint = MaterialTheme.colorScheme.onPrimary
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            offset = DpOffset(x = 0.dp, y = 0.dp)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Refresh") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = { showMenu = false; onRefresh() }
                             )
+                            if (calls.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Share Log") },
+                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                    onClick = { showMenu = false; onShare() }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Clear All") },
+                                    leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) },
+                                    onClick = { showMenu = false; onClear() }
+                                )
+                            }
                         }
                     }
                 },
@@ -284,6 +326,53 @@ fun MethodBadge(method: String) {
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(text = method.uppercase(), color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+    }
+}
+
+private fun prettyJsonForLog(raw: String): String {
+    val trimmed = raw.trim()
+    return try {
+        when {
+            trimmed.startsWith("{") -> JSONObject(trimmed).toString(2)
+            trimmed.startsWith("[") -> JSONArray(trimmed).toString(2)
+            else -> raw
+        }
+    } catch (_: Exception) { raw }
+}
+
+private fun buildNetworkLogText(calls: List<NetworkCall>, dateFormat: SimpleDateFormat): String {
+    val separator = "=".repeat(80)
+    return buildString {
+        appendLine("Network Calls Log — ${calls.size} record(s)")
+        appendLine("Exported: ${dateFormat.format(Date())}")
+        appendLine()
+        calls.forEachIndexed { index, call ->
+            appendLine(separator)
+            appendLine("[${index + 1} / ${calls.size}] ${call.method.uppercase()} ${call.url}")
+            val statusText = when {
+                call.error != null && call.status == null -> "Error: ${call.error}"
+                call.status != null -> "${call.status}"
+                else -> "—"
+            }
+            appendLine("Status: $statusText | Duration: ${call.duration}ms | ${dateFormat.format(Date(call.timestamp))}")
+            if (call.error != null) appendLine("Error: ${call.error}")
+            appendLine()
+            appendLine("--- cURL ---")
+            append("curl -X ${call.method.uppercase()} '${call.url}'")
+            call.requestHeaders.entries.forEach { (k, v) -> append(" \\\n  -H '$k: $v'") }
+            if (call.requestBody != null) append(" \\\n  -d '${prettyJsonForLog(call.requestBody)}'")
+            appendLine()
+            appendLine()
+            appendLine("--- Response Headers ---")
+            if (call.responseHeaders.isEmpty()) appendLine("(none)")
+            else call.responseHeaders.entries.forEach { (k, v) -> appendLine("$k: $v") }
+            if (call.responseBody != null) {
+                appendLine()
+                appendLine("--- Response Body ---")
+                appendLine(prettyJsonForLog(call.responseBody))
+            }
+        }
+        appendLine(separator)
     }
 }
 

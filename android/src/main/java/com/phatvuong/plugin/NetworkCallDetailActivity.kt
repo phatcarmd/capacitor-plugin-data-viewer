@@ -1,5 +1,6 @@
 package com.phatvuong.plugin
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,6 +41,44 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private fun buildShareText(call: NetworkCall): String {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
+    val statusText = when {
+        call.error != null && call.status == null -> "Error: ${call.error}"
+        call.status != null -> "${call.status}"
+        else -> "—"
+    }
+    return buildString {
+        appendLine("[${call.method.uppercase()}] ${call.url}")
+        appendLine("Status: $statusText | Duration: ${call.duration}ms | ${dateFormat.format(Date(call.timestamp))}")
+        if (call.error != null) appendLine("Error: ${call.error}")
+        appendLine()
+
+        // cURL command
+        appendLine("--- cURL ---")
+        append("curl -X ${call.method.uppercase()} '${call.url}'")
+        call.requestHeaders.entries.forEach { (k, v) ->
+            append(" \\\n  -H '$k: $v'")
+        }
+        if (call.requestBody != null) {
+            val body = prettyJson(call.requestBody)
+            append(" \\\n  -d '$body'")
+        }
+        appendLine()
+        appendLine()
+
+        // Response
+        appendLine("--- Response Headers ---")
+        if (call.responseHeaders.isEmpty()) appendLine("(none)")
+        else call.responseHeaders.entries.forEach { (k, v) -> appendLine("$k: $v") }
+        if (call.responseBody != null) {
+            appendLine()
+            appendLine("--- Response Body ---")
+            append(prettyJson(call.responseBody))
+        }
+    }
+}
 
 private fun prettyJson(raw: String): String {
     val trimmed = raw.trim()
@@ -78,6 +118,21 @@ fun NetworkCallDetailScreen(call: NetworkCall) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Default.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, buildShareText(call))
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share"))
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },

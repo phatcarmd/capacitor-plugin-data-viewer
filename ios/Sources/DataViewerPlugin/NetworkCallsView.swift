@@ -1,7 +1,18 @@
 import SwiftUI
 
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
+}
+
 struct NetworkCallsView: View {
     @ObservedObject private var store = NetworkCallStore.shared
+    @State private var exportFileUrl: URL? = nil
+
+    private static let exportDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return f
+    }()
 
     var body: some View {
         Group {
@@ -30,22 +41,86 @@ struct NetworkCallsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 16) {
+                Menu {
                     Button(action: { store.loadFromJS() }) {
-                        Image(systemName: "arrow.clockwise")
+                        Label("Refresh", systemImage: "arrow.clockwise")
                     }
                     if !store.calls.isEmpty {
+                        Button(action: { exportToFile() }) {
+                            Label("Share Log", systemImage: "square.and.arrow.up")
+                        }
                         Button(action: { store.clear() }) {
-                            Image(systemName: "trash")
+                            Label("Clear All", systemImage: "trash")
+                                .foregroundColor(.red)
                         }
                     }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundColor(.white)
                 }
-                .foregroundColor(.white)
             }
+        }
+        .sheet(item: $exportFileUrl) { url in
+            ShareSheet(activityItems: [url])
         }
         .onAppear {
             store.loadFromJS()
         }
+    }
+
+    private func exportToFile() {
+        let calls = store.calls
+        guard !calls.isEmpty else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let text = buildNetworkLogText(calls)
+            let fileUrl = FileManager.default.temporaryDirectory
+                .appendingPathComponent("network_calls.txt")
+            try? text.write(to: fileUrl, atomically: true, encoding: .utf8)
+            DispatchQueue.main.async {
+                exportFileUrl = fileUrl
+            }
+        }
+    }
+
+    private func buildNetworkLogText(_ calls: [NetworkCall]) -> String {
+        let fmt = NetworkCallsView.exportDateFormatter
+        let separator = String(repeating: "=", count: 80)
+        var lines: [String] = []
+        lines.append("Network Calls Log — \(calls.count) record(s)")
+        lines.append("Exported: \(fmt.string(from: Date()))")
+        lines.append("")
+        for (index, call) in calls.enumerated() {
+            lines.append(separator)
+            lines.append("[\(index + 1) / \(calls.count)] \(call.method.uppercased()) \(call.url)")
+            let statusText: String = {
+                if let err = call.error, call.status == nil { return "Error: \(err)" }
+                if let s = call.status { return "\(s)" }
+                return "—"
+            }()
+            lines.append("Status: \(statusText) | Duration: \(call.duration)ms | \(fmt.string(from: Date(timeIntervalSince1970: call.timestamp)))")
+            if let err = call.error { lines.append("Error: \(err)") }
+            lines.append("")
+            lines.append("--- cURL ---")
+            var curl = "curl -X \(call.method.uppercased()) '\(call.url)'"
+            call.requestHeaders.sorted(by: { $0.key < $1.key }).forEach { curl += " \\\n  -H '\($0.key): \($0.value)'" }
+            if let body = call.requestBody { curl += " \\\n  -d '\(prettyJson(body))'" }
+            lines.append(curl)
+            lines.append("")
+            lines.append("--- Response Headers ---")
+            if call.responseHeaders.isEmpty {
+                lines.append("(none)")
+            } else {
+                call.responseHeaders.sorted(by: { $0.key < $1.key }).forEach { lines.append("\($0.key): \($0.value)") }
+            }
+            if let body = call.responseBody {
+                lines.append("")
+                lines.append("--- Response Body ---")
+                lines.append(prettyJson(body))
+            }
+            lines.append("")
+        }
+        lines.append(separator)
+        return lines.joined(separator: "\n")
     }
 }
 

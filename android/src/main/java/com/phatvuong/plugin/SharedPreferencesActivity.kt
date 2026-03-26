@@ -1,5 +1,6 @@
 package com.phatvuong.plugin
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
@@ -27,6 +28,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -52,10 +57,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -86,6 +94,7 @@ fun SharedPreferencesScreen(
     val dividerColor = MaterialTheme.colorScheme.outlineVariant
     val rows = remember { mutableStateListOf<SharedPrefEntry>() }
 
+    var showMenu by remember { mutableStateOf(false) }
     var selectedEntry by remember { mutableStateOf<SharedPrefEntry?>(null) }
     var selectedCellData by remember { mutableStateOf("") }
     var showCellActionDialog by remember { mutableStateOf(false) }
@@ -288,8 +297,42 @@ fun SharedPreferencesScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { beginCreate() }) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add", tint = MaterialTheme.colorScheme.onPrimary)
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            offset = DpOffset(x = 0.dp, y = 0.dp)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Add Entry") },
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                onClick = { showMenu = false; beginCreate() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Share File") },
+                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    val prefFile = File(context.applicationInfo.dataDir, "shared_prefs/$fileName.xml")
+                                    if (prefFile.exists()) {
+                                        val uri = FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.dataviewer.fileprovider",
+                                            prefFile
+                                        )
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "*/*"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, "Share"))
+                                    }
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

@@ -25,6 +25,7 @@ struct PreferenceDetailScreen: View {
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     @State private var keySortOrder: KeySortOrder = .none
+    @State private var showShareSheet = false
     
     private let repository = DatabaseRepository.shared
     private let columnWidth: CGFloat = 150
@@ -55,9 +56,19 @@ struct PreferenceDetailScreen: View {
             }
         }
         .navigationBarTitle(fileUrl.deletingPathExtension().lastPathComponent, displayMode: .inline)
-        .navigationBarItems(trailing: Button(action: beginCreate) {
-            Image(systemName: "plus")
+        .navigationBarItems(trailing: Menu {
+            Button(action: beginCreate) {
+                Label("Add Entry", systemImage: "plus")
+            }
+            Button(action: { showShareSheet = true }) {
+                Label("Share File", systemImage: "square.and.arrow.up")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
         })
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(activityItems: [fileUrl])
+        }
         .actionSheet(isPresented: $showActionSheet) {
             let canOperateOnRow = selectedRowIndex != nil
             return ActionSheet(

@@ -3,6 +3,7 @@ import UIKit
 
 struct NetworkCallDetailView: View {
     let call: NetworkCall
+    @State private var showShareSheet = false
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -66,12 +67,53 @@ struct NetworkCallDetailView: View {
         }
         .navigationTitle(call.method.uppercased())
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarItems(trailing: Button(action: { showShareSheet = true }) {
+            Image(systemName: "square.and.arrow.up")
+        })
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(activityItems: [buildShareText()])
+        }
     }
 
     private var statusText: String {
         if let err = call.error, call.status == nil { return "Error: \(err)" }
         if let s = call.status { return "\(s)" }
         return "—"
+    }
+
+    private func buildShareText() -> String {
+        var lines: [String] = []
+        lines.append("[\(call.method.uppercased())] \(call.url)")
+        lines.append("Status: \(statusText) | Duration: \(call.duration)ms | \(dateString)")
+        if let err = call.error { lines.append("Error: \(err)") }
+        lines.append("")
+
+        // cURL command
+        lines.append("--- cURL ---")
+        var curl = "curl -X \(call.method.uppercased()) '\(call.url)'"
+        call.requestHeaders.sorted(by: { $0.key < $1.key }).forEach { (k, v) in
+            curl += " \\\n  -H '\(k): \(v)'"
+        }
+        if let body = call.requestBody {
+            curl += " \\\n  -d '\(prettyJson(body))'"
+        }
+        lines.append(curl)
+        lines.append("")
+
+        // Response
+        lines.append("--- Response Headers ---")
+        if call.responseHeaders.isEmpty {
+            lines.append("(none)")
+        } else {
+            call.responseHeaders.sorted(by: { $0.key < $1.key }).forEach { lines.append("\($0.key): \($0.value)") }
+        }
+        if let body = call.responseBody {
+            lines.append("")
+            lines.append("--- Response Body ---")
+            lines.append(prettyJson(body))
+        }
+
+        return lines.joined(separator: "\n")
     }
 }
 
@@ -159,7 +201,7 @@ private func copyToClipboard(_ text: String) {
     feedback.notificationOccurred(.success)
 }
 
-private func prettyJson(_ raw: String) -> String {
+func prettyJson(_ raw: String) -> String {
     let trimmed = raw.trimmingCharacters(in: .whitespaces)
     guard trimmed.hasPrefix("{") || trimmed.hasPrefix("["),
           let data = trimmed.data(using: .utf8),
