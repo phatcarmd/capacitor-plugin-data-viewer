@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -241,14 +242,14 @@ private fun DetailRow(label: String, value: String, monoLabel: Boolean = false) 
             style = MaterialTheme.typography.labelMedium,
             fontFamily = if (monoLabel) FontFamily.Monospace else null,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.35f)
+            modifier = Modifier.width(110.dp)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
             fontFamily = FontFamily.Monospace,
             modifier = Modifier
-                .weight(0.65f)
+                .weight(1f)
                 .clickable {
                     clipboard.setText(AnnotatedString(value))
                     Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()

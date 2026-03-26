@@ -66,7 +66,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -104,6 +106,11 @@ fun DataGridScreen(dbName: String, tableName: String) {
     var sortOrder by remember { mutableStateOf(SortOrder.NONE) }
 
     val visibleIndices = allColumns.indices.filter { allColumns[it] in visibleColumns }
+
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val colCount = visibleIndices.size.takeIf { it > 0 } ?: allColumns.size
+    val columnWidth: Dp = if (colCount > 0 && colCount < 4) screenWidth / colCount else 150.dp
+    val useHorizontalScroll = colCount >= 4
 
     val horizontalScrollState = rememberScrollState()
 
@@ -184,18 +191,13 @@ fun DataGridScreen(dbName: String, tableName: String) {
         Column(modifier = Modifier.padding(padding)) {
             if (isLoading && rowData.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Loading records...")
-                    }
+                    CircularProgressIndicator()
                 }
             } else {
-                Box(modifier = Modifier.horizontalScroll(horizontalScrollState)) {
+                Box(modifier = if (useHorizontalScroll) Modifier.horizontalScroll(horizontalScrollState) else Modifier) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
 
                     stickyHeader {
@@ -205,6 +207,7 @@ fun DataGridScreen(dbName: String, tableName: String) {
                                     row = allColumns.filter { it in visibleColumns },
                                     index = 0,
                                     isHeader = true,
+                                    columnWidth = columnWidth,
                                     sortColumn = sortColumn,
                                     sortOrder = sortOrder,
                                     onHeaderClick = { column ->
@@ -256,7 +259,7 @@ fun DataGridScreen(dbName: String, tableName: String) {
 
                         val filteredRow = visibleIndices.map { row.getOrNull(it) ?: "" }
 
-                        TableRow(filteredRow, index = index, isHeader = false, onCellClick = { cellText ->
+                        TableRow(filteredRow, index = index, isHeader = false, columnWidth = columnWidth, onCellClick = { cellText ->
                             selectedCellData = cellText
                             showCellInfoDialog = true
                         })
@@ -279,13 +282,14 @@ fun TableRow(
     row: List<String>,
     isHeader: Boolean = false,
     index: Int,
+    columnWidth: Dp = 150.dp,
     onCellClick: ((String) -> Unit)? = null,
     sortColumn: String? = null,
     sortOrder: SortOrder = SortOrder.NONE,
     onHeaderClick: ((String) -> Unit)? = null,
 ) {
     val bgColor = when {
-        isHeader -> MaterialTheme.colorScheme.secondaryContainer
+        isHeader -> Color(0xFFF5F5F5)
         index % 2 != 0 -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
         else -> MaterialTheme.colorScheme.surface
     }
@@ -301,7 +305,7 @@ fun TableRow(
             row.forEachIndexed { index, cell ->
                 Row(
                     modifier = Modifier
-                        .width(250.dp)
+                        .width(columnWidth)
                         .clickable {
                             if (isHeader) {
                                 onHeaderClick?.invoke(cell)

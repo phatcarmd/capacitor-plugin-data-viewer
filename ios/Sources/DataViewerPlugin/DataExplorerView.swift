@@ -51,7 +51,7 @@ struct DataExplorerView: View {
         NavigationView {
             List {
                 // --- DATABASES ---
-                Section(header: Label("Databases", systemImage: "list.bullet")) {
+                Section(header: Text("Databases")) {
                     ForEach(dbFiles, id: \.self) { file in
                         if isSelectionMode {
                             Button(action: { toggleSelection(for: file) }) {
@@ -72,14 +72,14 @@ struct DataExplorerView: View {
                 }
                 
                 // --- NETWORK ---
-                Section(header: Label("Network", systemImage: "network")) {
+                Section(header: Text("Network")) {
                     NavigationLink(destination: NetworkCallsView()) {
                         FileRowView(fileName: "Network Calls", icon: "arrow.up.arrow.down.circle.fill", iconColor: .purple)
                     }
                 }
 
                 // --- SHARED PREFERENCES ---
-                Section(header: Label("Shared Preferences", systemImage: "gearshape.fill")) {
+                Section(header: Text("Shared Preferences")) {
                     ForEach(prefFiles, id: \.self) { file in
                         if isSelectionMode {
                             Button(action: { toggleSelection(for: file) }) {

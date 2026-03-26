@@ -21,11 +21,17 @@ struct NetworkCallsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if store.calls.isEmpty {
                 VStack(spacing: 8) {
+                    Image(systemName: "wifi.slash")
+                        .font(.system(size: 36))
+                        .foregroundColor(.secondary)
+                        .opacity(0.4)
+                        .padding(.bottom, 4)
                     Text("No network calls recorded")
                         .foregroundColor(.secondary)
                     Text("Call startNetworkTracking() to begin")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .opacity(0.6)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

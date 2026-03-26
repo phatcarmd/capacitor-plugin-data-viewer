@@ -22,36 +22,39 @@ struct DataGridScreen: View {
     
     private let pageSize = 50
     private let repository = DatabaseRepository.shared
-    private let columnWidth: CGFloat = 150
 
     var body: some View {
-        VStack(spacing: 0) {
-            if allColumns.isEmpty && isLoading {
-                ProgressView("Loading...")
-            } else {
-                ScrollView(.horizontal) {
-                    ScrollView(.vertical) {
-                        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                            Section(header: makeHeaderView()) { // Gọi hàm tạo Header
-                                ForEach(rows.indices, id: \.self) { index in
-                                    makeRowView(rows[index], index: index)
-                                        .onAppear {
-                                            if index == rows.count - 1 && canLoadMore {
-                                                loadMoreData()
+        GeometryReader { geo in
+            let colCount = max(1, visibleColumns.isEmpty ? allColumns.count : visibleColumns.count)
+            let colWidth: CGFloat = colCount < 4 ? geo.size.width / CGFloat(colCount) : 150
+
+            VStack(spacing: 0) {
+                if allColumns.isEmpty && isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView(.horizontal) {
+                        ScrollView(.vertical) {
+                            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                                Section(header: makeHeaderView(colWidth: colWidth)) {
+                                    ForEach(rows.indices, id: \.self) { index in
+                                        makeRowView(rows[index], index: index, colWidth: colWidth)
+                                            .onAppear {
+                                                if index == rows.count - 1 && canLoadMore {
+                                                    loadMoreData()
+                                                }
                                             }
-                                        }
-                                    Divider()
-                                }
-                                
-                                if isLoading {
-                                    ProgressView()
-                                        .frame(maxWidth: .infinity, minHeight: 44)
+                                        Divider()
+                                    }
+                                    if isLoading {
+                                        ProgressView()
+                                            .frame(maxWidth: .infinity, minHeight: 44)
+                                    }
                                 }
                             }
                         }
+                        .frame(width: colWidth * CGFloat(colCount))
                     }
-                    // Tính độ rộng dựa trên số cột đang hiển thị
-                    .frame(width: CGFloat(visibleColumns.isEmpty ? allColumns.count : visibleColumns.count) * columnWidth)
                 }
             }
         }
@@ -82,8 +85,7 @@ struct DataGridScreen: View {
         }
     }
 
-    // Chuyển thành hàm để build dễ hơn
-    private func makeHeaderView() -> some View {
+    private func makeHeaderView(colWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             let displayCols = allColumns.filter { visibleColumns.contains($0) }
             ForEach(displayCols, id: \.self) { col in
@@ -91,40 +93,41 @@ struct DataGridScreen: View {
                     Text(col)
                         .font(.caption.bold())
                         .lineLimit(1)
-
                     if sortColumn == col {
                         Image(systemName: sortOrder == .asc ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
                             .font(.system(size: 9))
                             .foregroundColor(.blue)
                     }
                 }
-                .frame(width: columnWidth, height: 40, alignment: .leading)
+                .frame(width: colWidth, height: 40, alignment: .leading)
                 .padding(.horizontal, 8)
                 .background(Color(.systemGray6))
                 .border(Color(.systemGray4), width: 0.5)
                 .contentShape(Rectangle())
-                .onTapGesture {
-                    toggleSort(for: col)
-                }
+                .onTapGesture { toggleSort(for: col) }
             }
         }
     }
 
-    private func makeRowView(_ row: [String], index: Int) -> some View {
-        // Lấy danh sách index của những cột được chọn
+    private func makeRowView(_ row: [String], index: Int, colWidth: CGFloat) -> some View {
         let visibleIndices = allColumns.enumerated()
             .filter { visibleColumns.contains($1) }
             .map { $0.offset }
-      
         return HStack(spacing: 0) {
-            ForEach(visibleIndices, id: \.self) { colIndex in
-                // Kiểm tra index an toàn tránh crash
+            ForEach(Array(visibleIndices.enumerated()), id: \.offset) { enumIdx, colIndex in
+                let isLast = enumIdx == visibleIndices.count - 1
                 Text(row.indices.contains(colIndex) ? row[colIndex] : "")
                     .font(.system(size: 12))
-                    .frame(width: columnWidth, height: 35, alignment: .leading)
+                    .frame(width: colWidth, height: 35, alignment: .leading)
                     .padding(.horizontal, 8)
                     .lineLimit(1)
                     .background(index % 2 == 0 ? Color(.systemBackground) : Color(.secondarySystemBackground))
+                    .overlay(
+                        Rectangle()
+                            .frame(width: 0.5)
+                            .foregroundColor(isLast ? .clear : Color(.systemGray4)),
+                        alignment: .trailing
+                    )
                     .onTapGesture {
                         if row.indices.contains(colIndex) {
                             self.selectedCellText = row[colIndex]
